@@ -1,0 +1,9 @@
+<UserControl x:Class="TerritoryBuilder.App.Views.ScoringTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="12">
+        <CheckBox Content="Use number_of_addresses multiplier" IsChecked="{Binding UseAddressMultiplier}"/>
+        <Button Content="Preview Weighted Opportunity" Command="{Binding PreviewScoringCommand}" Width="220" Margin="0,8,0,0"/>
+        <TextBlock Text="{Binding TotalWeightedOpportunity, StringFormat=Total Score: {0:N2}}" Margin="0,8,0,0" />
+    </StackPanel>
+</UserControl>

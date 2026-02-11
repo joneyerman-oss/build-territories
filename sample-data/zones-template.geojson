@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "zone_name": "VNN" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-97.0,32.5],[-96.5,32.5],[-96.5,33.0],[-97.0,33.0],[-97.0,32.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_name": "NN" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-96.5,32.5],[-96.0,32.5],[-96.0,33.0],[-96.5,33.0],[-96.5,32.5]]]
+      }
+    }
+  ]
+}

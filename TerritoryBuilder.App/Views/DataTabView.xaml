@@ -1,0 +1,16 @@
+<UserControl x:Class="TerritoryBuilder.App.Views.DataTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="12">
+        <TextBlock Text="LightBox CSV"/>
+        <TextBox Text="{Binding LightBoxPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Text="Zones GeoJSON" Margin="0,8,0,0"/>
+        <TextBox Text="{Binding ZoneGeoJsonPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Text="Rep Roster CSV" Margin="0,8,0,0"/>
+        <TextBox Text="{Binding RepRosterPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBlock Text="Exclusion CSV (optional)" Margin="0,8,0,0"/>
+        <TextBox Text="{Binding ExclusionPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <Button Content="Load Data" Command="{Binding LoadDataCommand}" Margin="0,10,0,0" Width="140"/>
+        <TextBlock Text="{Binding StatusMessage}" Margin="0,10,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+</UserControl>
