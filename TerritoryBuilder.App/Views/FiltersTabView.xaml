@@ -1,0 +1,15 @@
+<UserControl x:Class="TerritoryBuilder.App.Views.FiltersTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="12">
+        <TextBlock Text="Zones" FontWeight="Bold"/>
+        <CheckBox Content="VNN" IsChecked="{Binding IncludeVnn}"/>
+        <CheckBox Content="NN" IsChecked="{Binding IncludeNn}"/>
+        <TextBlock Text="Building Types" FontWeight="Bold" Margin="0,8,0,0"/>
+        <CheckBox Content="Large Business" IsChecked="{Binding IncludeLargeBusiness}"/>
+        <CheckBox Content="Medium Business" IsChecked="{Binding IncludeMediumBusiness}"/>
+        <CheckBox Content="Small Business" IsChecked="{Binding IncludeSmallBusiness}"/>
+        <CheckBox Content="Unknown" IsChecked="{Binding IncludeUnknown}"/>
+        <CheckBox Content="(Blanks)" IsChecked="{Binding IncludeBlanks}"/>
+    </StackPanel>
+</UserControl>

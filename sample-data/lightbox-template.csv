@@ -1,0 +1,3 @@
+entity_category_id,name,latitude,longitude,address,city,county,state,zip,building_type,number_of_addresses,owner_commpany_flag
+1,ENT-001,32.811,-96.791,123 Main Street,Dallas,Dallas,TX,75201,Large Business,5,true
+2,ENT-002,32.812,-96.790,555 Oak Avenue,Dallas,Dallas,TX,75202,Medium Business,2,false

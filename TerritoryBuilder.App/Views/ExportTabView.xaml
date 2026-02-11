@@ -1,0 +1,8 @@
+<UserControl x:Class="TerritoryBuilder.App.Views.ExportTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="12">
+        <Button Content="Export CSV/GeoJSON/JSON" Command="{Binding ExportCommand}" Width="220"/>
+        <TextBlock Text="{Binding StatusMessage}" Margin="0,8,0,0"/>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,19 @@
+<Window x:Class="TerritoryBuilder.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="TerritoryBuilder" Height="900" Width="1320">
+    <Grid Margin="10">
+        <TabControl>
+            <TabItem Header="Data"><ContentControl Content="{Binding DataTab}" /></TabItem>
+            <TabItem Header="Filters"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
+            <TabItem Header="Scoring"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
+            <TabItem Header="Assignment"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
+            <TabItem Header="Map"><ContentControl Content="{Binding MapTab}" /></TabItem>
+            <TabItem Header="Results"><ContentControl Content="{Binding ResultsTab}" /></TabItem>
+            <TabItem Header="Export"><ContentControl Content="{Binding ExportTab}" /></TabItem>
+        </TabControl>
+    </Grid>
+</Window>

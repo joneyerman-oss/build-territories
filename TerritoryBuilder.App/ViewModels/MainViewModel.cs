@@ -1,0 +1,136 @@
+using System.Collections.ObjectModel;
+using System.Windows.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using TerritoryBuilder.App.Views;
+using TerritoryBuilder.Core.Assignment;
+using TerritoryBuilder.Core.Export;
+using TerritoryBuilder.Core.Models;
+using TerritoryBuilder.Core.Services;
+
+namespace TerritoryBuilder.App.ViewModels;
+
+public partial class MainViewModel : ObservableObject
+{
+    private readonly IDataIngestionService _ingestion = new DataIngestionService();
+    private readonly IScoringFilterEngine _engine = new ScoringFilterEngine();
+    private readonly IAssignmentService _assignment = new InitialAssignmentService();
+    private readonly ExportService _export = new();
+
+    private List<ZoneFeature> _zones = [];
+    private List<RepRecord> _reps = [];
+    private List<HashSet<string>> _exclusionSets = [];
+    private AssignmentResult? _latestResult;
+
+    public UserControl DataTab { get; } = new DataTabView();
+    public UserControl FiltersTab { get; } = new FiltersTabView();
+    public UserControl ScoringTab { get; } = new ScoringTabView();
+    public UserControl AssignmentTab { get; } = new AssignmentTabView();
+    public UserControl MapTab { get; } = new MapTabView();
+    public UserControl ResultsTab { get; } = new ResultsTabView();
+    public UserControl ExportTab { get; } = new ExportTabView();
+
+    [ObservableProperty] private string lightBoxPath = string.Empty;
+    [ObservableProperty] private string zoneGeoJsonPath = string.Empty;
+    [ObservableProperty] private string repRosterPath = string.Empty;
+    [ObservableProperty] private string exclusionPath = string.Empty;
+    [ObservableProperty] private bool includeVnn = true;
+    [ObservableProperty] private bool includeNn;
+    [ObservableProperty] private bool includeLargeBusiness = true;
+    [ObservableProperty] private bool includeMediumBusiness = true;
+    [ObservableProperty] private bool includeSmallBusiness = true;
+    [ObservableProperty] private bool includeUnknown = true;
+    [ObservableProperty] private bool includeBlanks = true;
+    [ObservableProperty] private bool useAddressMultiplier;
+    [ObservableProperty] private decimal fairnessTolerance = 5;
+    [ObservableProperty] private string statusMessage = "Ready.";
+    [ObservableProperty] private decimal totalWeightedOpportunity;
+
+    public ObservableCollection<RepMetrics> RepMetrics { get; } = [];
+
+    public MainViewModel()
+    {
+        foreach (var tab in new[] { DataTab, FiltersTab, ScoringTab, AssignmentTab, MapTab, ResultsTab, ExportTab })
+        {
+            tab.DataContext = this;
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadDataAsync()
+    {
+        if (!File.Exists(LightBoxPath) || !File.Exists(ZoneGeoJsonPath) || !File.Exists(RepRosterPath))
+        {
+            StatusMessage = "Please provide valid file paths for LightBox, zones, and reps.";
+            return;
+        }
+
+        StatusMessage = "Loading zones/reps...";
+        _zones = await _ingestion.ReadZonesAsync(ZoneGeoJsonPath, CancellationToken.None);
+        _reps = await _ingestion.ReadRepsAsync(RepRosterPath, CancellationToken.None);
+        _exclusionSets = [];
+
+        if (!string.IsNullOrWhiteSpace(ExclusionPath) && File.Exists(ExclusionPath))
+        {
+            _exclusionSets.Add(await _ingestion.ReadExclusionKeysAsync(ExclusionPath, CancellationToken.None));
+        }
+
+        StatusMessage = $"Loaded {_zones.Count} zone features and {_reps.Count} reps.";
+    }
+
+    [RelayCommand]
+    private async Task PreviewScoringAsync()
+    {
+        var candidates = await BuildCandidatesAsync();
+        TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidates);
+        StatusMessage = $"Preview complete: {candidates.Count} included businesses.";
+    }
+
+    [RelayCommand]
+    private async Task RunAssignmentAsync()
+    {
+        var candidates = await BuildCandidatesAsync();
+        var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
+        _latestResult = result;
+        RepMetrics.Clear();
+        foreach (var row in result.RepMetrics) RepMetrics.Add(row);
+        StatusMessage = $"Run complete. Fairness index: {result.Overall.FairnessIndex:P2}";
+    }
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        if (_latestResult is null)
+        {
+            StatusMessage = "Run assignment before export.";
+            return;
+        }
+
+        Directory.CreateDirectory("output");
+        await _export.ExportAssignmentsCsvAsync(Path.Combine("output", "assignments.csv"), _latestResult, CancellationToken.None);
+        await _export.ExportSummaryCsvAsync(Path.Combine("output", "summary.csv"), _latestResult, CancellationToken.None);
+        await _export.ExportRunLogJsonAsync(Path.Combine("output", "run-log.json"), _latestResult, CancellationToken.None);
+        await _export.ExportTerritoriesGeoJsonAsync(Path.Combine("output", "territories.geojson"), _latestResult, CancellationToken.None);
+        StatusMessage = "Exports written to output/.";
+    }
+
+    private async Task<List<BusinessCandidate>> BuildCandidatesAsync()
+    {
+        var buildingTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (IncludeLargeBusiness) buildingTypes.Add("Large Business");
+        if (IncludeMediumBusiness) buildingTypes.Add("Medium Business");
+        if (IncludeSmallBusiness) buildingTypes.Add("Small Business");
+        if (IncludeUnknown) buildingTypes.Add("Unknown");
+        if (IncludeBlanks) buildingTypes.Add("(Blanks)");
+
+        var filters = new FilterOptions
+        {
+            IncludeVnn = IncludeVnn,
+            IncludeNn = IncludeNn,
+            IncludedBuildingTypes = buildingTypes
+        };
+
+        var scoring = new ScoringOptions { UseAddressMultiplier = UseAddressMultiplier };
+        return await _engine.BuildCandidatesAsync(_ingestion.ReadLightBoxAsync(LightBoxPath, CancellationToken.None), _zones, filters, scoring, _exclusionSets, CancellationToken.None);
+    }
+}

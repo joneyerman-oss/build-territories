@@ -1,0 +1,8 @@
+<UserControl x:Class="TerritoryBuilder.App.Views.MapTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="12">
+        <TextBlock Text="Map pane placeholder for WebView2 + Leaflet integration." />
+        <TextBlock Text="Phase 2: render zones, included/excluded points, and rep territories." Margin="0,6,0,0"/>
+    </StackPanel>
+</UserControl>
