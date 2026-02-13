@@ -64,9 +64,14 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
 
     public decimal CalculateTotalWeightedOpportunity(IReadOnlyCollection<BusinessCandidate> candidates) => candidates.Sum(c => c.Score);
 
-    private static bool ShouldIncludeZone(string zoneName, FilterOptions options) =>
-        zoneName.Equals("VNN", StringComparison.OrdinalIgnoreCase) ? options.IncludeVnn :
-        zoneName.Equals("NN", StringComparison.OrdinalIgnoreCase) ? options.IncludeNn : false;
+    private static bool ShouldIncludeZone(string zoneName, FilterOptions options)
+    {
+        if (zoneName.Equals("VNN", StringComparison.OrdinalIgnoreCase)) return options.IncludeVnn;
+        if (zoneName.Equals("NN", StringComparison.OrdinalIgnoreCase)) return options.IncludeNn;
+
+        // Support arbitrary or unlabeled polygons in uploaded GeoJSON.
+        return true;
+    }
 
     private static STRtree<ZoneFeature> BuildZoneIndex(List<ZoneFeature> zones)
     {
