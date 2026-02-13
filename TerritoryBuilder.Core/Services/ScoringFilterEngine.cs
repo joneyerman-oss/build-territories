@@ -9,6 +9,8 @@ namespace TerritoryBuilder.Core.Services;
 public sealed class ScoringFilterEngine : IScoringFilterEngine
 {
     private const double WebMercatorOriginShift = 20037508.34;
+    private const double Wgs84ZoneMatchTolerance = 0.00001; // ~1.1m at equator
+    private const double WebMercatorZoneMatchTolerance = 1.5; // meters
     private readonly GeometryFactory _geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     public async Task<CandidateBuildResult> BuildCandidatesAsync(
@@ -78,11 +80,11 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
             }
 
             var point = _geometryFactory.CreatePoint(new Coordinate(record.Longitude, record.Latitude));
-            var zoneName = ResolveZone(point, zoneIndex);
+            var zoneName = ResolveZone(point, zoneIndex, Wgs84ZoneMatchTolerance);
             if (zoneName is null)
             {
                 point = _geometryFactory.CreatePoint(new Coordinate(record.Latitude, record.Longitude));
-                zoneName = ResolveZone(point, zoneIndex);
+                zoneName = ResolveZone(point, zoneIndex, Wgs84ZoneMatchTolerance);
             }
 
             if (zoneName is null)
@@ -90,7 +92,7 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
                 // Some zone files are authored in Web Mercator (EPSG:3857) instead of lon/lat WGS84.
                 // Try that projection as a fallback so valid business records are not all filtered out.
                 var mercatorPoint = _geometryFactory.CreatePoint(ToWebMercator(record.Longitude, record.Latitude));
-                zoneName = ResolveZone(mercatorPoint, zoneIndex);
+                zoneName = ResolveZone(mercatorPoint, zoneIndex, WebMercatorZoneMatchTolerance);
                 if (zoneName is null)
                 {
                     diagnostics.ZoneNotMatchedFiltered++;
@@ -138,11 +140,14 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
         return tree;
     }
 
-    private static string? ResolveZone(Point point, STRtree<ZoneFeature> zones)
+    private static string? ResolveZone(Point point, STRtree<ZoneFeature> zones, double tolerance)
     {
-        foreach (var zone in zones.Query(point.EnvelopeInternal))
+        var queryEnvelope = point.EnvelopeInternal.Copy();
+        queryEnvelope.ExpandBy(tolerance);
+
+        foreach (var zone in zones.Query(queryEnvelope))
         {
-            if (zone.Geometry.Covers(point))
+            if (zone.Geometry.Covers(point) || zone.Geometry.IsWithinDistance(point, tolerance))
             {
                 return zone.ZoneName;
             }
