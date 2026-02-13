@@ -241,7 +241,7 @@ public partial class MainViewModel : ObservableObject
             await _export.ExportAssignmentsCsvAsync(Path.Combine("output", "assignments.csv"), _latestResult, CancellationToken.None);
             await _export.ExportSummaryCsvAsync(Path.Combine("output", "summary.csv"), _latestResult, CancellationToken.None);
             await _export.ExportRunLogJsonAsync(Path.Combine("output", "run-log.json"), _latestResult, CancellationToken.None);
-            await _export.ExportTerritoriesGeoJsonAsync(Path.Combine("output", "territories.geojson"), _latestResult, CancellationToken.None);
+            await _export.ExportTerritoriesGeoJsonAsync(Path.Combine("output", "territories.geojson"), _latestResult, CancellationToken.None, _zones);
         });
 
         StatusMessage = "Exports written to output/.";
