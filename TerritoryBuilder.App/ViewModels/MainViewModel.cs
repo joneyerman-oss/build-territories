@@ -41,7 +41,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool includeSmallBusiness = true;
     [ObservableProperty] private bool includeUnknown = true;
     [ObservableProperty] private bool includeBlanks = true;
-    [ObservableProperty] private bool useAddressMultiplier;
     [ObservableProperty] private decimal fairnessTolerance = 5;
     [ObservableProperty] private string statusMessage = "Ready.";
     [ObservableProperty] private decimal totalWeightedOpportunity;
@@ -127,6 +126,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
+            await EnsureDataLoadedAsync();
             var candidates = await BuildCandidatesAsync();
             TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidates);
             StatusMessage = $"Preview complete: {candidates.Count} included businesses.";
@@ -142,16 +142,28 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var candidates = await BuildCandidatesAsync();
-            var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
-            _latestResult = result;
-            RepMetrics.Clear();
-            foreach (var row in result.RepMetrics) RepMetrics.Add(row);
-            StatusMessage = $"Run complete. Fairness index: {result.Overall.FairnessIndex:P2}";
+            await EnsureDataLoadedAsync();
+            await RunAssignmentCoreAsync();
         }
         catch (Exception ex)
         {
             StatusMessage = $"Run failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task RunFullWorkflowAsync()
+    {
+        try
+        {
+            await EnsureDataLoadedAsync();
+            await RunAssignmentCoreAsync();
+            await ExportLatestResultAsync();
+            StatusMessage = "Full run complete. Assignment finished and outputs were written to output/.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Full run failed: {ex.Message}";
         }
     }
 
@@ -162,6 +174,41 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = "Run assignment before export.";
             return;
+        }
+
+        await ExportLatestResultAsync();
+    }
+
+    private async Task RunAssignmentCoreAsync()
+    {
+        var candidates = await BuildCandidatesAsync();
+        var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
+        _latestResult = result;
+        RepMetrics.Clear();
+        foreach (var row in result.RepMetrics) RepMetrics.Add(row);
+        StatusMessage = $"Run complete. Fairness index: {result.Overall.FairnessIndex:P2}";
+    }
+
+    private async Task EnsureDataLoadedAsync()
+    {
+        if (_zones.Count > 0 && _reps.Count > 0)
+        {
+            return;
+        }
+
+        await LoadDataAsync();
+
+        if (_zones.Count == 0 || _reps.Count == 0)
+        {
+            throw new InvalidOperationException("Load data before running assignment.");
+        }
+    }
+
+    private async Task ExportLatestResultAsync()
+    {
+        if (_latestResult is null)
+        {
+            throw new InvalidOperationException("Run assignment before export.");
         }
 
         Directory.CreateDirectory("output");
@@ -181,12 +228,17 @@ public partial class MainViewModel : ObservableObject
         if (IncludeUnknown) buildingTypes.Add("Unknown");
         if (IncludeBlanks) buildingTypes.Add("(Blanks)");
 
+        if (buildingTypes.Count == 0)
+        {
+            throw new InvalidOperationException("Select at least one building type filter.");
+        }
+
         var filters = new FilterOptions
         {
             IncludedBuildingTypes = buildingTypes
         };
 
-        var scoring = new ScoringOptions { UseAddressMultiplier = UseAddressMultiplier };
+        var scoring = new ScoringOptions { UseAddressMultiplier = true };
         return await _engine.BuildCandidatesAsync(_ingestion.ReadLightBoxAsync(LightBoxPath, CancellationToken.None), _zones, filters, scoring, _exclusionSets, CancellationToken.None);
     }
 
