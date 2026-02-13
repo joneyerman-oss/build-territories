@@ -30,6 +30,7 @@
         </DockPanel>
         <Button Content="Load Data" Command="{Binding LoadDataCommand}" Margin="0,10,0,0" Width="140"/>
         <Button Content="Run Full Assignment" Command="{Binding RunFullWorkflowCommand}" Margin="0,8,0,0" Width="180"/>
+        <CheckBox Content="Show advanced workflow tabs (Filters, Scoring, Assignment, Map, Export)" IsChecked="{Binding IsAdvancedMode}" Margin="0,8,0,0"/>
         <TextBlock Text="{Binding StatusMessage}" Margin="0,10,0,0" TextWrapping="Wrap"/>
     </StackPanel>
 </UserControl>

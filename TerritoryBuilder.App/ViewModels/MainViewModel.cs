@@ -46,6 +46,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private decimal totalWeightedOpportunity;
     [ObservableProperty] private int repRosterCount;
     [ObservableProperty] private int repCountInput;
+    [ObservableProperty] private bool isAdvancedMode;
 
     public ObservableCollection<RepMetrics> RepMetrics { get; } = [];
 
