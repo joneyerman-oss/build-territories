@@ -72,46 +72,59 @@ public sealed class ExportService
         if (assigned.Count > 0)
         {
             var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
-            var sites = geometryFactory.CreateMultiPoint(assigned.Select(a => a.Point).ToArray());
+            var repGroups = assigned
+                .GroupBy(a => a.AssignedRepId!, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-            var clipEnvelope = sites.EnvelopeInternal.Copy();
-            clipEnvelope.ExpandBy(0.25);
-
-            var voronoiBuilder = new VoronoiDiagramBuilder();
-            voronoiBuilder.SetSites(sites);
-            voronoiBuilder.ClipEnvelope = clipEnvelope;
-
-            var diagram = voronoiBuilder.GetDiagram(geometryFactory);
-            var cellsByRep = new Dictionary<string, List<Geometry>>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var cell in diagram.Geometries.OfType<Polygon>())
+            if (repGroups.Count == 1)
             {
-                var matchingCandidate = assigned
-                    .FirstOrDefault(candidate => cell.Covers(candidate.Point));
-
-                matchingCandidate ??= assigned
-                    .OrderBy(candidate => candidate.Point.Distance(cell.Centroid))
-                    .FirstOrDefault();
-
-                if (matchingCandidate?.AssignedRepId is null)
+                var singleRepGroup = repGroups[0];
+                var territory = geometryFactory.CreateMultiPoint(singleRepGroup.Select(candidate => candidate.Point).ToArray()).ConvexHull();
+                if (territory.IsEmpty)
                 {
-                    continue;
+                    territory = geometryFactory.CreatePoint(singleRepGroup.First().Point.Coordinate).Buffer(0.01);
                 }
 
-                if (!cellsByRep.TryGetValue(matchingCandidate.AssignedRepId, out var repCells))
-                {
-                    repCells = [];
-                    cellsByRep[matchingCandidate.AssignedRepId] = repCells;
-                }
-
-                repCells.Add(cell);
+                fc.Add(new Feature(territory, new AttributesTable { { "rep_id", singleRepGroup.Key } }));
             }
-
-            foreach (var (repId, cells) in cellsByRep)
+            else
             {
-                var geom = NetTopologySuite.Operation.Union.CascadedPolygonUnion.Union(cells);
-                var attr = new AttributesTable { { "rep_id", repId } };
-                fc.Add(new Feature(geom, attr));
+                var centroidSites = repGroups
+                    .Select(group => new
+                    {
+                        RepId = group.Key,
+                        Point = geometryFactory.CreatePoint(new Coordinate(
+                            group.Average(candidate => candidate.Point.X),
+                            group.Average(candidate => candidate.Point.Y)))
+                    })
+                    .ToList();
+
+                var sites = geometryFactory.CreateMultiPoint(centroidSites.Select(site => site.Point).ToArray());
+                var clipEnvelope = sites.EnvelopeInternal.Copy();
+                clipEnvelope.ExpandBy(0.25);
+
+                var voronoiBuilder = new VoronoiDiagramBuilder();
+                voronoiBuilder.SetSites(sites);
+                voronoiBuilder.ClipEnvelope = clipEnvelope;
+
+                var diagram = voronoiBuilder.GetDiagram(geometryFactory);
+
+                foreach (var cell in diagram.Geometries.OfType<Polygon>())
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var matchingSite = centroidSites
+                        .OrderBy(site => site.Point.Distance(cell.Centroid))
+                        .FirstOrDefault();
+
+                    if (matchingSite?.RepId is null)
+                    {
+                        continue;
+                    }
+
+                    var attr = new AttributesTable { { "rep_id", matchingSite.RepId } };
+                    fc.Add(new Feature(cell, attr));
+                }
             }
         }
 
