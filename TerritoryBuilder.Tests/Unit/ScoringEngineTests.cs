@@ -50,6 +50,27 @@ public class ScoringEngineTests
     }
 
     [Fact]
+    public async Task BuildCandidates_AllowsBlankEntityCategory()
+    {
+        var engine = new ScoringFilterEngine();
+        var zones = new List<ZoneFeature>
+        {
+            new() { ZoneName = "VNN", Geometry = new Polygon(new LinearRing(new[] { new Coordinate(0,0), new Coordinate(10,0), new Coordinate(10,10), new Coordinate(0,10), new Coordinate(0,0) })) }
+        };
+
+        async IAsyncEnumerable<LightBoxRecord> Records()
+        {
+            yield return new LightBoxRecord { Name = "blank-category", EntityCategory = string.Empty, Latitude = 5, Longitude = 5, BuildingType = "Large Business", Address = "1 Main" };
+            await Task.CompletedTask;
+        }
+
+        var scored = await engine.BuildCandidatesAsync(Records(), zones, new FilterOptions(), new ScoringOptions(), [], CancellationToken.None);
+
+        Assert.Single(scored);
+        Assert.Equal("blank-category", scored[0].Source.Name);
+    }
+
+    [Fact]
     public async Task BuildCandidates_AppliesAddressMultiplierWhenEnabled()
     {
         var engine = new ScoringFilterEngine();
