@@ -4,7 +4,7 @@ namespace TerritoryBuilder.Core.Services;
 
 public interface IScoringFilterEngine
 {
-    Task<List<BusinessCandidate>> BuildCandidatesAsync(
+    Task<CandidateBuildResult> BuildCandidatesAsync(
         IAsyncEnumerable<LightBoxRecord> records,
         IReadOnlyCollection<ZoneFeature> zones,
         FilterOptions filters,

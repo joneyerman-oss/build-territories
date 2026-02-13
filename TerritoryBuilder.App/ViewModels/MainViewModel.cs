@@ -43,6 +43,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool includeBlanks = true;
     [ObservableProperty] private decimal fairnessTolerance = 5;
     [ObservableProperty] private string statusMessage = "Ready.";
+    [ObservableProperty] private string diagnosticsMessage = string.Empty;
     [ObservableProperty] private decimal totalWeightedOpportunity;
     [ObservableProperty] private int repRosterCount;
     [ObservableProperty] private int repCountInput;
@@ -128,13 +129,15 @@ public partial class MainViewModel : ObservableObject
         try
         {
             await EnsureDataLoadedAsync();
-            var candidates = await BuildCandidatesAsync();
-            TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidates);
-            StatusMessage = $"Preview complete: {candidates.Count} included businesses.";
+            var candidateBuild = await BuildCandidatesAsync();
+            TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidateBuild.Candidates);
+            StatusMessage = $"Preview complete: {candidateBuild.Candidates.Count} included businesses.";
+            DiagnosticsMessage = FormatDiagnostics(candidateBuild.Diagnostics);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Preview failed: {ex.Message}";
+            DiagnosticsMessage = string.Empty;
         }
     }
 
@@ -149,6 +152,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Run failed: {ex.Message}";
+            DiagnosticsMessage = string.Empty;
         }
     }
 
@@ -165,6 +169,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Full run failed: {ex.Message}";
+            DiagnosticsMessage = string.Empty;
         }
     }
 
@@ -182,8 +187,9 @@ public partial class MainViewModel : ObservableObject
 
     private async Task RunAssignmentCoreAsync()
     {
-        var candidates = await BuildCandidatesAsync();
-        var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
+        var candidateBuild = await BuildCandidatesAsync();
+        DiagnosticsMessage = FormatDiagnostics(candidateBuild.Diagnostics);
+        var result = await _assignment.AssignAsync(candidateBuild.Candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
         _latestResult = result;
         RepMetrics.Clear();
         foreach (var row in result.RepMetrics) RepMetrics.Add(row);
@@ -220,7 +226,7 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "Exports written to output/.";
     }
 
-    private async Task<List<BusinessCandidate>> BuildCandidatesAsync()
+    private async Task<CandidateBuildResult> BuildCandidatesAsync()
     {
         var buildingTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (IncludeLargeBusiness) buildingTypes.Add("Large Business");
@@ -241,6 +247,14 @@ public partial class MainViewModel : ObservableObject
 
         var scoring = new ScoringOptions { UseAddressMultiplier = true };
         return await _engine.BuildCandidatesAsync(_ingestion.ReadLightBoxAsync(LightBoxPath, CancellationToken.None), _zones, filters, scoring, _exclusionSets, CancellationToken.None);
+    }
+
+    private static string FormatDiagnostics(CandidateBuildDiagnostics diagnostics)
+    {
+        return $"Debug candidate pipeline => Read: {diagnostics.TotalRecordsRead}; Included: {diagnostics.IncludedCandidates}; " +
+               $"Dropped invalid coords: {diagnostics.InvalidCoordinateSkipped}; Non-business: {diagnostics.NonBusinessSkipped}; " +
+               $"Building type: {diagnostics.BuildingTypeFiltered}; City: {diagnostics.CityFiltered}; County: {diagnostics.CountyFiltered}; " +
+               $"Exclusion: {diagnostics.ExclusionFiltered}; Duplicates: {diagnostics.DuplicateFiltered}; Zone mismatch: {diagnostics.ZoneNotMatchedFiltered}.";
     }
 
     private static string? BrowseForFile(string filter)
