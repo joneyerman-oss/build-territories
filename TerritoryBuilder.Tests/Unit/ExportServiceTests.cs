@@ -48,4 +48,70 @@ public class ExportServiceTests
             }
         }
     }
+    [Fact]
+    public async Task ExportTerritoriesGeoJsonAsync_CreatesNonOverlappingTerritories()
+    {
+        var service = new ExportService();
+        var result = new AssignmentResult
+        {
+            AssignedBusinesses =
+            [
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "A1" },
+                    Point = new Point(new Coordinate(-97.75, 30.26)),
+                    AssignedRepId = "rep-a"
+                },
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "A2" },
+                    Point = new Point(new Coordinate(-97.74, 30.27)),
+                    AssignedRepId = "rep-a"
+                },
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "B1" },
+                    Point = new Point(new Coordinate(-97.70, 30.26)),
+                    AssignedRepId = "rep-b"
+                },
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "B2" },
+                    Point = new Point(new Coordinate(-97.69, 30.27)),
+                    AssignedRepId = "rep-b"
+                }
+            ]
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"territories-{Guid.NewGuid():N}.geojson");
+
+        try
+        {
+            await service.ExportTerritoriesGeoJsonAsync(path, result, CancellationToken.None);
+
+            var json = await File.ReadAllTextAsync(path);
+            var payload = JObject.Parse(json);
+            var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+
+            Assert.Equal(2, features.Count);
+
+            var reader = new NetTopologySuite.IO.GeoJsonReader();
+            var geometries = features
+                .Select(feature => feature["geometry"]?.ToString())
+                .Where(geometryJson => !string.IsNullOrWhiteSpace(geometryJson))
+                .Select(geometryJson => reader.Read<Geometry>(geometryJson!))
+                .ToList();
+
+            Assert.Equal(2, geometries.Count);
+            Assert.False(geometries[0].Overlaps(geometries[1]));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
 }
