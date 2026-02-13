@@ -105,13 +105,19 @@ public sealed class ExportService
             }
             else
             {
+                var centroidCoordinates = repGroups
+                    .Select(group => new Coordinate(
+                        group.Average(candidate => candidate.Point.X),
+                        group.Average(candidate => candidate.Point.Y)))
+                    .ToList();
+
+                EnsureMinimumSiteSeparation(centroidCoordinates);
+
                 var centroidSites = repGroups
-                    .Select(group => new
+                    .Select((group, index) => new
                     {
                         RepId = group.Key,
-                        Point = geometryFactory.CreatePoint(new Coordinate(
-                            group.Average(candidate => candidate.Point.X),
-                            group.Average(candidate => candidate.Point.Y)))
+                        Point = geometryFactory.CreatePoint(centroidCoordinates[index])
                     })
                     .ToList();
 
@@ -198,5 +204,62 @@ public sealed class ExportService
         }
 
         return polygons.Length == 1 ? polygons[0] : geometryFactory.CreateMultiPolygon(polygons);
+    }
+
+    private static void EnsureMinimumSiteSeparation(IList<Coordinate> coordinates)
+    {
+        if (coordinates.Count < 2)
+        {
+            return;
+        }
+
+        var envelope = new Envelope();
+        foreach (var coordinate in coordinates)
+        {
+            envelope.ExpandToInclude(coordinate);
+        }
+
+        var span = Math.Max(envelope.Width, envelope.Height);
+        var minimumDistance = Math.Max(span * 1e-9, 1e-7);
+
+        for (var i = 0; i < coordinates.Count; i++)
+        {
+            var current = coordinates[i];
+            var attempt = 0;
+
+            while (HasNeighborWithinTolerance(coordinates, i, current, minimumDistance) && attempt < 16)
+            {
+                attempt++;
+                var angle = attempt * (Math.PI / 4d);
+                var radius = minimumDistance * attempt;
+                current = new Coordinate(
+                    coordinates[i].X + (Math.Cos(angle) * radius),
+                    coordinates[i].Y + (Math.Sin(angle) * radius));
+            }
+
+            coordinates[i] = current;
+        }
+    }
+
+    private static bool HasNeighborWithinTolerance(
+        IReadOnlyList<Coordinate> coordinates,
+        int currentIndex,
+        Coordinate candidate,
+        double tolerance)
+    {
+        for (var i = 0; i < coordinates.Count; i++)
+        {
+            if (i == currentIndex)
+            {
+                continue;
+            }
+
+            if (candidate.Distance(coordinates[i]) <= tolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
