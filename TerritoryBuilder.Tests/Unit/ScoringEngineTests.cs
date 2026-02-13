@@ -132,6 +132,38 @@ public class ScoringEngineTests
         Assert.Equal("VNN", scored[0].ZoneName);
     }
 
+
+    [Fact]
+    public async Task BuildCandidates_MapsUnrecognizedBuildingTypesToUnknownBucket()
+    {
+        var engine = new ScoringFilterEngine();
+        var zones = new List<ZoneFeature>
+        {
+            new() { ZoneName = "VNN", Geometry = new Polygon(new LinearRing(new[] { new Coordinate(0,0), new Coordinate(10,0), new Coordinate(10,10), new Coordinate(0,10), new Coordinate(0,0) })) }
+        };
+
+        async IAsyncEnumerable<LightBoxRecord> Records()
+        {
+            yield return new LightBoxRecord
+            {
+                Name = "household-row",
+                EntityCategory = "Business",
+                Latitude = 5,
+                Longitude = 5,
+                BuildingType = "Single Family",
+                Address = "1 Main"
+            };
+
+            await Task.CompletedTask;
+        }
+
+        var scored = await engine.BuildCandidatesAsync(Records(), zones, new FilterOptions(), new ScoringOptions(), [], CancellationToken.None);
+
+        Assert.Single(scored);
+        Assert.Equal("Unknown", scored[0].Source.BuildingTypeBucket);
+        Assert.Equal(1, scored[0].Score);
+    }
+
     [Fact]
     public void ExclusionNormalization_UppercasesAndAbbreviates()
     {
