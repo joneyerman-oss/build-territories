@@ -20,6 +20,12 @@ public sealed class InitialAssignmentService : IAssignmentService
 
         var repLoad = activeReps.ToDictionary(r => r.RepId, _ => 0m, StringComparer.OrdinalIgnoreCase);
 
+        if (ShouldUseAngularSlicing(activeReps))
+        {
+            AssignByAngularSlices(candidates, activeReps, target, repLoad, cancellationToken);
+            return Task.FromResult(BuildResult(candidates, activeReps, target));
+        }
+
         foreach (var c in candidates.OrderByDescending(c => c.Score))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -38,6 +44,55 @@ public sealed class InitialAssignmentService : IAssignmentService
             repLoad[ranked.Rep.RepId] += c.Score;
         }
 
+        return Task.FromResult(BuildResult(candidates, activeReps, target));
+    }
+
+    private static bool ShouldUseAngularSlicing(IReadOnlyCollection<RepRecord> activeReps)
+    {
+        var uniqueHomes = activeReps
+            .Select(r => (Lat: Math.Round(r.HomeLat, 6), Lon: Math.Round(r.HomeLon, 6)))
+            .Distinct()
+            .Count();
+
+        return uniqueHomes <= 1;
+    }
+
+    private static void AssignByAngularSlices(
+        IReadOnlyCollection<BusinessCandidate> candidates,
+        IReadOnlyList<RepRecord> activeReps,
+        decimal target,
+        IDictionary<string, decimal> repLoad,
+        CancellationToken cancellationToken)
+    {
+        var centerX = candidates.Average(c => c.Point.X);
+        var centerY = candidates.Average(c => c.Point.Y);
+
+        var ordered = candidates
+            .OrderBy(c => Math.Atan2(c.Point.Y - centerY, c.Point.X - centerX))
+            .ToList();
+
+        var repIndex = 0;
+        foreach (var c in ordered)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            while (repIndex < activeReps.Count - 1 && repLoad[activeReps[repIndex].RepId] >= target)
+            {
+                repIndex++;
+            }
+
+            var rep = activeReps[repIndex];
+            c.AssignedRepId = rep.RepId;
+            c.DistanceProxyMiles = GeoUtils.HaversineMiles(new(rep.HomeLon, rep.HomeLat), c.Point.Coordinate);
+            repLoad[rep.RepId] += c.Score;
+        }
+    }
+
+    private static AssignmentResult BuildResult(
+        IReadOnlyCollection<BusinessCandidate> candidates,
+        IReadOnlyCollection<RepRecord> activeReps,
+        decimal target)
+    {
         var repMetrics = activeReps.Select(r =>
         {
             var mine = candidates.Where(c => c.AssignedRepId == r.RepId).ToList();
@@ -68,11 +123,11 @@ public sealed class InitialAssignmentService : IAssignmentService
             ExcludedCount = 0
         };
 
-        return Task.FromResult(new AssignmentResult
+        return new AssignmentResult
         {
             AssignedBusinesses = candidates.ToList(),
             RepMetrics = repMetrics,
             Overall = overall
-        });
+        };
     }
 }
