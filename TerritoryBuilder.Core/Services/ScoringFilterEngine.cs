@@ -44,7 +44,12 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
 
             var point = _geometryFactory.CreatePoint(new Coordinate(record.Longitude, record.Latitude));
             var zoneName = ResolveZone(point, zoneIndex);
-            if (zoneName is null) continue;
+            if (zoneName is null)
+            {
+                point = _geometryFactory.CreatePoint(new Coordinate(record.Latitude, record.Longitude));
+                zoneName = ResolveZone(point, zoneIndex);
+                if (zoneName is null) continue;
+            }
 
             var baseScore = scoring.BuildingTypePoints.TryGetValue(bucket, out var score) ? score : 1;
             var totalScore = scoring.UseAddressMultiplier
