@@ -72,14 +72,14 @@ public sealed class ExportService
         if (assigned.Count > 0)
         {
             var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
-            var sites = geometryFactory.CreateMultiPoint(assigned.Select(a => a.Point.Coordinate).ToArray());
+            var sites = geometryFactory.CreateMultiPoint(assigned.Select(a => a.Point).ToArray());
 
             var clipEnvelope = sites.EnvelopeInternal.Copy();
             clipEnvelope.ExpandBy(0.25);
 
             var voronoiBuilder = new VoronoiDiagramBuilder();
             voronoiBuilder.SetSites(sites);
-            voronoiBuilder.SetClipEnvelope(clipEnvelope);
+            voronoiBuilder.ClipEnvelope = clipEnvelope;
 
             var diagram = voronoiBuilder.GetDiagram(geometryFactory);
             var cellsByRep = new Dictionary<string, List<Geometry>>(StringComparer.OrdinalIgnoreCase);
