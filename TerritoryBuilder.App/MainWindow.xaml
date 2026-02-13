@@ -5,15 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="TerritoryBuilder" Height="900" Width="1320">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </Window.Resources>
     <Grid Margin="10">
         <TabControl>
             <TabItem Header="Data"><ContentControl Content="{Binding DataTab}" /></TabItem>
-            <TabItem Header="Filters"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
-            <TabItem Header="Scoring"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
-            <TabItem Header="Assignment"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
-            <TabItem Header="Map"><ContentControl Content="{Binding MapTab}" /></TabItem>
+            <TabItem Header="Filters" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
+            <TabItem Header="Scoring" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
+            <TabItem Header="Assignment" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
+            <TabItem Header="Map" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding MapTab}" /></TabItem>
             <TabItem Header="Results"><ContentControl Content="{Binding ResultsTab}" /></TabItem>
-            <TabItem Header="Export"><ContentControl Content="{Binding ExportTab}" /></TabItem>
+            <TabItem Header="Export" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ExportTab}" /></TabItem>
         </TabControl>
     </Grid>
 </Window>
