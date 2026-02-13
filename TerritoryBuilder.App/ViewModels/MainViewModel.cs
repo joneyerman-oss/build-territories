@@ -48,6 +48,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string statusMessage = "Ready.";
     [ObservableProperty] private decimal totalWeightedOpportunity;
     [ObservableProperty] private int repRosterCount;
+    [ObservableProperty] private int repCountInput;
 
     public ObservableCollection<RepMetrics> RepMetrics { get; } = [];
 
@@ -62,15 +63,28 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadDataAsync()
     {
-        if (!File.Exists(LightBoxPath) || !File.Exists(ZoneGeoJsonPath) || !File.Exists(RepRosterPath))
+        if (!File.Exists(LightBoxPath) || !File.Exists(ZoneGeoJsonPath))
         {
-            StatusMessage = "Please provide valid file paths for LightBox, zones, and reps.";
+            StatusMessage = "Please provide valid file paths for LightBox and zones.";
             return;
         }
 
         StatusMessage = "Loading zones/reps...";
         _zones = await _ingestion.ReadZonesAsync(ZoneGeoJsonPath, CancellationToken.None);
-        _reps = await _ingestion.ReadRepsAsync(RepRosterPath, CancellationToken.None);
+        if (RepCountInput > 0)
+        {
+            _reps = CreateSyntheticReps(RepCountInput);
+        }
+        else if (File.Exists(RepRosterPath))
+        {
+            _reps = await _ingestion.ReadRepsAsync(RepRosterPath, CancellationToken.None);
+        }
+        else
+        {
+            StatusMessage = "Provide a rep roster CSV or enter a rep count.";
+            return;
+        }
+
         RepRosterCount = _reps.Count;
         _exclusionSets = [];
 
@@ -176,5 +190,19 @@ public partial class MainViewModel : ObservableObject
         };
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private static List<RepRecord> CreateSyntheticReps(int repCount)
+    {
+        return Enumerable.Range(1, repCount)
+            .Select(i => new RepRecord
+            {
+                RepId = $"rep-{i}",
+                RepName = $"Rep {i}",
+                Active = true,
+                HomeLat = 0,
+                HomeLon = 0
+            })
+            .ToList();
     }
 }
