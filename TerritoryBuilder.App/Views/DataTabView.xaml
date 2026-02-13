@@ -19,6 +19,8 @@
             <Button Content="Browse" Command="{Binding BrowseRepRosterFileCommand}" Width="80" DockPanel.Dock="Right" Margin="8,0,0,0"/>
             <TextBox Text="{Binding RepRosterPath, UpdateSourceTrigger=PropertyChanged}"/>
         </DockPanel>
+        <TextBlock Text="Or input number of reps" Margin="0,8,0,0"/>
+        <TextBox Text="{Binding RepCountInput, UpdateSourceTrigger=PropertyChanged}"/>
         <TextBlock Text="{Binding RepRosterCount, StringFormat=Rep count: {0}}" Margin="0,4,0,0"/>
 
         <TextBlock Text="Exclusion CSV (optional)" Margin="0,8,0,0"/>
