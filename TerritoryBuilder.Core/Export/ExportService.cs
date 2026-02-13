@@ -242,7 +242,7 @@ public sealed class ExportService
     }
 
     private static bool HasNeighborWithinTolerance(
-        IReadOnlyList<Coordinate> coordinates,
+        IList<Coordinate> coordinates,
         int currentIndex,
         Coordinate candidate,
         double tolerance)
