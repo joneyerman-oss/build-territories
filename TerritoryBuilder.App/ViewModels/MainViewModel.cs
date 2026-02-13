@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using TerritoryBuilder.App.Views;
 using TerritoryBuilder.Core.Assignment;
 using TerritoryBuilder.Core.Export;
@@ -46,6 +47,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private decimal fairnessTolerance = 5;
     [ObservableProperty] private string statusMessage = "Ready.";
     [ObservableProperty] private decimal totalWeightedOpportunity;
+    [ObservableProperty] private int repRosterCount;
 
     public ObservableCollection<RepMetrics> RepMetrics { get; } = [];
 
@@ -69,6 +71,7 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "Loading zones/reps...";
         _zones = await _ingestion.ReadZonesAsync(ZoneGeoJsonPath, CancellationToken.None);
         _reps = await _ingestion.ReadRepsAsync(RepRosterPath, CancellationToken.None);
+        RepRosterCount = _reps.Count;
         _exclusionSets = [];
 
         if (!string.IsNullOrWhiteSpace(ExclusionPath) && File.Exists(ExclusionPath))
@@ -77,6 +80,34 @@ public partial class MainViewModel : ObservableObject
         }
 
         StatusMessage = $"Loaded {_zones.Count} zone features and {_reps.Count} reps.";
+    }
+
+    [RelayCommand]
+    private void BrowseLightBoxFile()
+    {
+        var path = BrowseForFile("CSV files (*.csv)|*.csv|All files (*.*)|*.*");
+        if (!string.IsNullOrWhiteSpace(path)) LightBoxPath = path;
+    }
+
+    [RelayCommand]
+    private void BrowseZoneGeoJsonFile()
+    {
+        var path = BrowseForFile("GeoJSON files (*.geojson;*.json)|*.geojson;*.json|All files (*.*)|*.*");
+        if (!string.IsNullOrWhiteSpace(path)) ZoneGeoJsonPath = path;
+    }
+
+    [RelayCommand]
+    private void BrowseRepRosterFile()
+    {
+        var path = BrowseForFile("CSV files (*.csv)|*.csv|All files (*.*)|*.*");
+        if (!string.IsNullOrWhiteSpace(path)) RepRosterPath = path;
+    }
+
+    [RelayCommand]
+    private void BrowseExclusionFile()
+    {
+        var path = BrowseForFile("CSV files (*.csv)|*.csv|All files (*.*)|*.*");
+        if (!string.IsNullOrWhiteSpace(path)) ExclusionPath = path;
     }
 
     [RelayCommand]
@@ -133,5 +164,17 @@ public partial class MainViewModel : ObservableObject
 
         var scoring = new ScoringOptions { UseAddressMultiplier = UseAddressMultiplier };
         return await _engine.BuildCandidatesAsync(_ingestion.ReadLightBoxAsync(LightBoxPath, CancellationToken.None), _zones, filters, scoring, _exclusionSets, CancellationToken.None);
+    }
+
+    private static string? BrowseForFile(string filter)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = filter,
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
 }
