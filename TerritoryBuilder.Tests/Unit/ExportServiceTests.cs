@@ -181,4 +181,48 @@ public class ExportServiceTests
         }
     }
 
+    [Fact]
+    public async Task ExportTerritoriesGeoJsonAsync_HandlesNearlyIdenticalRepCentroids()
+    {
+        var service = new ExportService();
+        var result = new AssignmentResult
+        {
+            AssignedBusinesses =
+            [
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "A1" },
+                    Point = new Point(new Coordinate(-97.75000000, 30.26000000)),
+                    AssignedRepId = "rep-a"
+                },
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "B1" },
+                    Point = new Point(new Coordinate(-97.75000001, 30.26000001)),
+                    AssignedRepId = "rep-b"
+                }
+            ]
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"territories-{Guid.NewGuid():N}.geojson");
+
+        try
+        {
+            await service.ExportTerritoriesGeoJsonAsync(path, result, CancellationToken.None);
+
+            var json = await File.ReadAllTextAsync(path);
+            var payload = JObject.Parse(json);
+            var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+
+            Assert.Equal(2, features.Count);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
 }
