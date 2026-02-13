@@ -1,7 +1,9 @@
 using System.Globalization;
 using CsvHelper;
 using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
+using NetTopologySuite.Triangulate;
 using Newtonsoft.Json;
 using TerritoryBuilder.Core.Models;
 
@@ -62,11 +64,55 @@ public sealed class ExportService
     public async Task ExportTerritoriesGeoJsonAsync(string path, AssignmentResult result, CancellationToken cancellationToken)
     {
         var fc = new FeatureCollection();
-        foreach (var group in result.AssignedBusinesses.Where(a => !string.IsNullOrWhiteSpace(a.AssignedRepId)).GroupBy(a => a.AssignedRepId!))
+
+        var assigned = result.AssignedBusinesses
+            .Where(a => !string.IsNullOrWhiteSpace(a.AssignedRepId))
+            .ToList();
+
+        if (assigned.Count > 0)
         {
-            var geom = NetTopologySuite.Operation.Union.CascadedPolygonUnion.Union(group.Select(g => g.Point.Buffer(0.02)).ToList());
-            var attr = new AttributesTable { { "rep_id", group.Key } };
-            fc.Add(new Feature(geom, attr));
+            var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            var sites = geometryFactory.CreateMultiPoint(assigned.Select(a => a.Point.Coordinate).ToArray());
+
+            var clipEnvelope = sites.EnvelopeInternal.Copy();
+            clipEnvelope.ExpandBy(0.25);
+
+            var voronoiBuilder = new VoronoiDiagramBuilder();
+            voronoiBuilder.SetSites(sites);
+            voronoiBuilder.SetClipEnvelope(clipEnvelope);
+
+            var diagram = voronoiBuilder.GetDiagram(geometryFactory);
+            var cellsByRep = new Dictionary<string, List<Geometry>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var cell in diagram.Geometries.OfType<Polygon>())
+            {
+                var matchingCandidate = assigned
+                    .FirstOrDefault(candidate => cell.Covers(candidate.Point));
+
+                matchingCandidate ??= assigned
+                    .OrderBy(candidate => candidate.Point.Distance(cell.Centroid))
+                    .FirstOrDefault();
+
+                if (matchingCandidate?.AssignedRepId is null)
+                {
+                    continue;
+                }
+
+                if (!cellsByRep.TryGetValue(matchingCandidate.AssignedRepId, out var repCells))
+                {
+                    repCells = [];
+                    cellsByRep[matchingCandidate.AssignedRepId] = repCells;
+                }
+
+                repCells.Add(cell);
+            }
+
+            foreach (var (repId, cells) in cellsByRep)
+            {
+                var geom = NetTopologySuite.Operation.Union.CascadedPolygonUnion.Union(cells);
+                var attr = new AttributesTable { { "rep_id", repId } };
+                fc.Add(new Feature(geom, attr));
+            }
         }
 
         var serializer = GeoJsonSerializer.Create();
