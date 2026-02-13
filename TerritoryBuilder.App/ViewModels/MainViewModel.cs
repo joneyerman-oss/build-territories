@@ -137,7 +137,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Preview failed: {ex.Message}";
-            DiagnosticsMessage = string.Empty;
+            DiagnosticsMessage = $"Preview diagnostics unavailable due to error: {ex.Message}";
         }
     }
 
@@ -152,7 +152,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Run failed: {ex.Message}";
-            DiagnosticsMessage = string.Empty;
+            DiagnosticsMessage = $"Run diagnostics unavailable due to error: {ex.Message}";
         }
     }
 
@@ -169,7 +169,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Full run failed: {ex.Message}";
-            DiagnosticsMessage = string.Empty;
+            DiagnosticsMessage = $"Full-run diagnostics unavailable due to error: {ex.Message}";
         }
     }
 
