@@ -2,7 +2,9 @@ using System.Globalization;
 using CsvHelper;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries.Utilities;
 using NetTopologySuite.IO;
+using NetTopologySuite.Operation.Union;
 using NetTopologySuite.Triangulate;
 using Newtonsoft.Json;
 using TerritoryBuilder.Core.Models;
@@ -61,7 +63,11 @@ public sealed class ExportService
         await File.WriteAllTextAsync(path, payload, cancellationToken);
     }
 
-    public async Task ExportTerritoriesGeoJsonAsync(string path, AssignmentResult result, CancellationToken cancellationToken)
+    public async Task ExportTerritoriesGeoJsonAsync(
+        string path,
+        AssignmentResult result,
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<ZoneFeature>? zones = null)
     {
         var fc = new FeatureCollection();
 
@@ -72,6 +78,7 @@ public sealed class ExportService
         if (assigned.Count > 0)
         {
             var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            var clipGeometry = BuildClipGeometry(zones);
             var repGroups = assigned
                 .GroupBy(a => a.AssignedRepId!, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -85,7 +92,16 @@ public sealed class ExportService
                     territory = geometryFactory.CreatePoint(singleRepGroup.First().Point.Coordinate).Buffer(0.01);
                 }
 
-                fc.Add(new Feature(territory, new AttributesTable { { "rep_id", singleRepGroup.Key } }));
+                if (clipGeometry is not null)
+                {
+                    territory = territory.Intersection(clipGeometry);
+                }
+
+                territory = ToPolygonalGeometry(territory, geometryFactory);
+                if (territory is not null && !territory.IsEmpty)
+                {
+                    fc.Add(new Feature(territory, new AttributesTable { { "rep_id", singleRepGroup.Key } }));
+                }
             }
             else
             {
@@ -100,8 +116,8 @@ public sealed class ExportService
                     .ToList();
 
                 var sites = geometryFactory.CreateMultiPoint(centroidSites.Select(site => site.Point).ToArray());
-                var clipEnvelope = sites.EnvelopeInternal.Copy();
-                clipEnvelope.ExpandBy(0.25);
+                var clipEnvelope = (clipGeometry is not null ? clipGeometry.EnvelopeInternal.Copy() : sites.EnvelopeInternal.Copy());
+                clipEnvelope.ExpandBy(0.01);
 
                 var voronoiBuilder = new VoronoiDiagramBuilder();
                 voronoiBuilder.SetSites(sites);
@@ -113,8 +129,16 @@ public sealed class ExportService
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    var territory = clipGeometry is null ? cell : cell.Intersection(clipGeometry);
+                    territory = ToPolygonalGeometry(territory, geometryFactory);
+
+                    if (territory is null || territory.IsEmpty)
+                    {
+                        continue;
+                    }
+
                     var matchingSite = centroidSites
-                        .OrderBy(site => site.Point.Distance(cell.Centroid))
+                        .OrderBy(site => site.Point.Distance(territory.Centroid))
                         .FirstOrDefault();
 
                     if (matchingSite?.RepId is null)
@@ -123,7 +147,7 @@ public sealed class ExportService
                     }
 
                     var attr = new AttributesTable { { "rep_id", matchingSite.RepId } };
-                    fc.Add(new Feature(cell, attr));
+                    fc.Add(new Feature(territory, attr));
                 }
             }
         }
@@ -132,5 +156,47 @@ public sealed class ExportService
         await using var sw = new StreamWriter(path);
         await using var jw = new JsonTextWriter(sw);
         serializer.Serialize(jw, fc);
+    }
+
+    private static Geometry? BuildClipGeometry(IReadOnlyCollection<ZoneFeature>? zones)
+    {
+        if (zones is null || zones.Count == 0)
+        {
+            return null;
+        }
+
+        var zoneGeometries = zones
+            .Select(zone => zone.Geometry)
+            .Where(geometry => geometry is not null && !geometry.IsEmpty)
+            .ToArray();
+
+        if (zoneGeometries.Length == 0)
+        {
+            return null;
+        }
+
+        var union = UnaryUnionOp.Union(zoneGeometries);
+        return union.IsValid ? union : union.Buffer(0);
+    }
+
+    private static Geometry? ToPolygonalGeometry(Geometry geometry, GeometryFactory geometryFactory)
+    {
+        if (geometry.IsEmpty)
+        {
+            return null;
+        }
+
+        if (geometry is Polygon or MultiPolygon)
+        {
+            return geometry;
+        }
+
+        var polygons = PolygonExtracter.GetPolygons(geometry).Cast<Polygon>().ToArray();
+        if (polygons.Length == 0)
+        {
+            return null;
+        }
+
+        return polygons.Length == 1 ? polygons[0] : geometryFactory.CreateMultiPolygon(polygons);
     }
 }
