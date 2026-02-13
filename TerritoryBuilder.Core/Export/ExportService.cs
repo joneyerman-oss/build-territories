@@ -159,7 +159,7 @@ public sealed class ExportService
                         fc.Add(new Feature(territory, attr));
                     }
                 }
-                catch (LocateFailureException)
+                catch (TopologyException)
                 {
                     AppendFallbackTerritories(fc, repGroups, clipGeometry, geometryFactory);
                 }
