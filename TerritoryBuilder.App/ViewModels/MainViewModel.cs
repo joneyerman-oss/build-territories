@@ -36,8 +36,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string zoneGeoJsonPath = string.Empty;
     [ObservableProperty] private string repRosterPath = string.Empty;
     [ObservableProperty] private string exclusionPath = string.Empty;
-    [ObservableProperty] private bool includeVnn = true;
-    [ObservableProperty] private bool includeNn;
     [ObservableProperty] private bool includeLargeBusiness = true;
     [ObservableProperty] private bool includeMediumBusiness = true;
     [ObservableProperty] private bool includeSmallBusiness = true;
@@ -185,8 +183,6 @@ public partial class MainViewModel : ObservableObject
 
         var filters = new FilterOptions
         {
-            IncludeVnn = IncludeVnn,
-            IncludeNn = IncludeNn,
             IncludedBuildingTypes = buildingTypes
         };
 

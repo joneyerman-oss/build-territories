@@ -18,7 +18,7 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
         IReadOnlyCollection<HashSet<string>> exclusionSets,
         CancellationToken cancellationToken)
     {
-        var zoneIndex = BuildZoneIndex(zones.Where(z => ShouldIncludeZone(z.ZoneName, filters)).ToList());
+        var zoneIndex = BuildZoneIndex(zones);
         var dedupe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<BusinessCandidate>();
 
@@ -64,16 +64,7 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
 
     public decimal CalculateTotalWeightedOpportunity(IReadOnlyCollection<BusinessCandidate> candidates) => candidates.Sum(c => c.Score);
 
-    private static bool ShouldIncludeZone(string zoneName, FilterOptions options)
-    {
-        if (zoneName.Equals("VNN", StringComparison.OrdinalIgnoreCase)) return options.IncludeVnn;
-        if (zoneName.Equals("NN", StringComparison.OrdinalIgnoreCase)) return options.IncludeNn;
-
-        // Support arbitrary or unlabeled polygons in uploaded GeoJSON.
-        return true;
-    }
-
-    private static STRtree<ZoneFeature> BuildZoneIndex(List<ZoneFeature> zones)
+    private static STRtree<ZoneFeature> BuildZoneIndex(IReadOnlyCollection<ZoneFeature> zones)
     {
         var tree = new STRtree<ZoneFeature>();
         foreach (var zone in zones)
