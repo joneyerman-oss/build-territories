@@ -8,6 +8,7 @@ namespace TerritoryBuilder.Core.Services;
 
 public sealed class ScoringFilterEngine : IScoringFilterEngine
 {
+    private const double WebMercatorOriginShift = 20037508.34;
     private readonly GeometryFactory _geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     public async Task<CandidateBuildResult> BuildCandidatesAsync(
@@ -82,11 +83,22 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
             {
                 point = _geometryFactory.CreatePoint(new Coordinate(record.Latitude, record.Longitude));
                 zoneName = ResolveZone(point, zoneIndex);
+            }
+
+            if (zoneName is null)
+            {
+                // Some zone files are authored in Web Mercator (EPSG:3857) instead of lon/lat WGS84.
+                // Try that projection as a fallback so valid business records are not all filtered out.
+                var mercatorPoint = _geometryFactory.CreatePoint(ToWebMercator(record.Longitude, record.Latitude));
+                zoneName = ResolveZone(mercatorPoint, zoneIndex);
                 if (zoneName is null)
                 {
                     diagnostics.ZoneNotMatchedFiltered++;
                     continue;
                 }
+
+                // Keep candidate coordinates in lon/lat for downstream map/export logic.
+                point = _geometryFactory.CreatePoint(new Coordinate(record.Longitude, record.Latitude));
             }
 
             var baseScore = scoring.BuildingTypePoints.TryGetValue(bucket, out var score) ? score : 1;
@@ -137,5 +149,13 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
         }
 
         return null;
+    }
+
+    private static Coordinate ToWebMercator(double lon, double lat)
+    {
+        var clampedLat = Math.Clamp(lat, -85.05112878, 85.05112878);
+        var x = lon * WebMercatorOriginShift / 180.0;
+        var y = Math.Log(Math.Tan((90.0 + clampedLat) * Math.PI / 360.0)) * WebMercatorOriginShift / Math.PI;
+        return new Coordinate(x, y);
     }
 }
