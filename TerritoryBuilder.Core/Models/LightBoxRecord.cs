@@ -2,6 +2,15 @@ namespace TerritoryBuilder.Core.Models;
 
 public sealed class LightBoxRecord
 {
+    private static readonly HashSet<string> KnownBuildingTypeBuckets = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Large Business",
+        "Medium Business",
+        "Small Business",
+        "Unknown",
+        "(Blanks)"
+    };
+
     public string EntityCategory { get; init; } = string.Empty;
     public string EntityCategoryId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
@@ -17,5 +26,14 @@ public sealed class LightBoxRecord
     public bool OwnerCompanyFlag { get; init; }
     public Dictionary<string, string> ExtraColumns { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public string BuildingTypeBucket => string.IsNullOrWhiteSpace(BuildingType) ? "(Blanks)" : BuildingType.Trim();
+    public string BuildingTypeBucket
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(BuildingType)) return "(Blanks)";
+
+            var normalized = BuildingType.Trim();
+            return KnownBuildingTypeBuckets.Contains(normalized) ? normalized : "Unknown";
+        }
+    }
 }
