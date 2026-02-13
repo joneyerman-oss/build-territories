@@ -3,13 +3,29 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel Margin="12">
         <TextBlock Text="LightBox CSV"/>
-        <TextBox Text="{Binding LightBoxPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <DockPanel>
+            <Button Content="Browse" Command="{Binding BrowseLightBoxFileCommand}" Width="80" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+            <TextBox Text="{Binding LightBoxPath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
+
         <TextBlock Text="Zones GeoJSON" Margin="0,8,0,0"/>
-        <TextBox Text="{Binding ZoneGeoJsonPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <DockPanel>
+            <Button Content="Browse" Command="{Binding BrowseZoneGeoJsonFileCommand}" Width="80" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+            <TextBox Text="{Binding ZoneGeoJsonPath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
+
         <TextBlock Text="Rep Roster CSV" Margin="0,8,0,0"/>
-        <TextBox Text="{Binding RepRosterPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <DockPanel>
+            <Button Content="Browse" Command="{Binding BrowseRepRosterFileCommand}" Width="80" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+            <TextBox Text="{Binding RepRosterPath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
+        <TextBlock Text="{Binding RepRosterCount, StringFormat=Rep count: {0}}" Margin="0,4,0,0"/>
+
         <TextBlock Text="Exclusion CSV (optional)" Margin="0,8,0,0"/>
-        <TextBox Text="{Binding ExclusionPath, UpdateSourceTrigger=PropertyChanged}"/>
+        <DockPanel>
+            <Button Content="Browse" Command="{Binding BrowseExclusionFileCommand}" Width="80" DockPanel.Dock="Right" Margin="8,0,0,0"/>
+            <TextBox Text="{Binding ExclusionPath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
         <Button Content="Load Data" Command="{Binding LoadDataCommand}" Margin="0,10,0,0" Width="140"/>
         <TextBlock Text="{Binding StatusMessage}" Margin="0,10,0,0" TextWrapping="Wrap"/>
     </StackPanel>
