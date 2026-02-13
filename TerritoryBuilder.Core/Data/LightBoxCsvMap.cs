@@ -22,7 +22,26 @@ public sealed class LightBoxCsvMap : ClassMap<LightBoxRecord>
         Map(m => m.OwnerCompanyFlag)
             .Name("owner_commpany_flag", "owner_company_flag")
             .Optional()
-            .TypeConverterOption.BooleanValues(true, true, "Y", "Yes", "True", "1")
-            .TypeConverterOption.BooleanValues(false, true, "N", "No", "False", "0");
+            .Convert(static args => ParseOwnerCompanyFlag(args.Row));
+    }
+
+    private static bool ParseOwnerCompanyFlag(CsvHelper.IReaderRow row)
+    {
+        if (!row.TryGetField("owner_commpany_flag", out string? rawValue)
+            && !row.TryGetField("owner_company_flag", out rawValue))
+        {
+            return false;
+        }
+
+        var value = rawValue?.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return value.Equals("1", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("y", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("yes", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 }
