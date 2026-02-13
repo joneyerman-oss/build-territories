@@ -25,7 +25,8 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
         await foreach (var record in records.WithCancellation(cancellationToken))
         {
             if (!GeoUtils.IsValidCoordinate(record.Latitude, record.Longitude)) continue;
-            if (!string.Equals(record.EntityCategory, "business", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.IsNullOrWhiteSpace(record.EntityCategory)
+                && !string.Equals(record.EntityCategory, "business", StringComparison.OrdinalIgnoreCase)) continue;
 
             var bucket = record.BuildingTypeBucket;
             if (!filters.IncludedBuildingTypes.Contains(bucket)) continue;
