@@ -159,7 +159,7 @@ public sealed class ExportService
                         fc.Add(new Feature(territory, attr));
                     }
                 }
-                catch (TopologyException)
+                catch (Exception ex) when (ShouldUseFallbackTerritories(ex))
                 {
                     AppendFallbackTerritories(fc, repGroups, clipGeometry, geometryFactory);
                 }
@@ -312,5 +312,26 @@ public sealed class ExportService
             consumed = consumed is null ? territory.Copy() : consumed.Union(territory);
             featureCollection.Add(new Feature(territory, new AttributesTable { { "rep_id", group.Key } }));
         }
+    }
+
+    private static bool ShouldUseFallbackTerritories(Exception exception)
+    {
+        if (exception is TopologyException)
+        {
+            return true;
+        }
+
+        var current = exception;
+        while (current is not null)
+        {
+            if (current.Message.Contains("Locate failed to converge", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            current = current.InnerException!;
+        }
+
+        return false;
     }
 }
