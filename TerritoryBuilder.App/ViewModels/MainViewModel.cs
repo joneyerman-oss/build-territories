@@ -127,20 +127,34 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task PreviewScoringAsync()
     {
-        var candidates = await BuildCandidatesAsync();
-        TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidates);
-        StatusMessage = $"Preview complete: {candidates.Count} included businesses.";
+        try
+        {
+            var candidates = await BuildCandidatesAsync();
+            TotalWeightedOpportunity = _engine.CalculateTotalWeightedOpportunity(candidates);
+            StatusMessage = $"Preview complete: {candidates.Count} included businesses.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Preview failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]
     private async Task RunAssignmentAsync()
     {
-        var candidates = await BuildCandidatesAsync();
-        var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
-        _latestResult = result;
-        RepMetrics.Clear();
-        foreach (var row in result.RepMetrics) RepMetrics.Add(row);
-        StatusMessage = $"Run complete. Fairness index: {result.Overall.FairnessIndex:P2}";
+        try
+        {
+            var candidates = await BuildCandidatesAsync();
+            var result = await _assignment.AssignAsync(candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
+            _latestResult = result;
+            RepMetrics.Clear();
+            foreach (var row in result.RepMetrics) RepMetrics.Add(row);
+            StatusMessage = $"Run complete. Fairness index: {result.Overall.FairnessIndex:P2}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Run failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]
