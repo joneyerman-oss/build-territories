@@ -6,6 +6,7 @@ using NetTopologySuite.Geometries.Utilities;
 using NetTopologySuite.IO;
 using NetTopologySuite.Operation.Union;
 using NetTopologySuite.Triangulate;
+using NetTopologySuite.Utilities;
 using Newtonsoft.Json;
 using TerritoryBuilder.Core.Models;
 
@@ -125,35 +126,42 @@ public sealed class ExportService
                 var clipEnvelope = (clipGeometry is not null ? clipGeometry.EnvelopeInternal.Copy() : sites.EnvelopeInternal.Copy());
                 clipEnvelope.ExpandBy(0.01);
 
-                var voronoiBuilder = new VoronoiDiagramBuilder();
-                voronoiBuilder.SetSites(sites);
-                voronoiBuilder.ClipEnvelope = clipEnvelope;
-
-                var diagram = voronoiBuilder.GetDiagram(geometryFactory);
-
-                foreach (var cell in diagram.Geometries.OfType<Polygon>())
+                try
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    var voronoiBuilder = new VoronoiDiagramBuilder();
+                    voronoiBuilder.SetSites(sites);
+                    voronoiBuilder.ClipEnvelope = clipEnvelope;
 
-                    var territory = clipGeometry is null ? cell : cell.Intersection(clipGeometry);
-                    territory = ToPolygonalGeometry(territory, geometryFactory);
+                    var diagram = voronoiBuilder.GetDiagram(geometryFactory);
 
-                    if (territory is null || territory.IsEmpty)
+                    foreach (var cell in diagram.Geometries.OfType<Polygon>())
                     {
-                        continue;
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        var territory = clipGeometry is null ? cell : cell.Intersection(clipGeometry);
+                        territory = ToPolygonalGeometry(territory, geometryFactory);
+
+                        if (territory is null || territory.IsEmpty)
+                        {
+                            continue;
+                        }
+
+                        var matchingSite = centroidSites
+                            .OrderBy(site => site.Point.Distance(territory.Centroid))
+                            .FirstOrDefault();
+
+                        if (matchingSite?.RepId is null)
+                        {
+                            continue;
+                        }
+
+                        var attr = new AttributesTable { { "rep_id", matchingSite.RepId } };
+                        fc.Add(new Feature(territory, attr));
                     }
-
-                    var matchingSite = centroidSites
-                        .OrderBy(site => site.Point.Distance(territory.Centroid))
-                        .FirstOrDefault();
-
-                    if (matchingSite?.RepId is null)
-                    {
-                        continue;
-                    }
-
-                    var attr = new AttributesTable { { "rep_id", matchingSite.RepId } };
-                    fc.Add(new Feature(territory, attr));
+                }
+                catch (LocateFailureException)
+                {
+                    AppendFallbackTerritories(fc, repGroups, clipGeometry, geometryFactory);
                 }
             }
         }
@@ -261,5 +269,48 @@ public sealed class ExportService
         }
 
         return false;
+    }
+
+    private static void AppendFallbackTerritories(
+        FeatureCollection featureCollection,
+        IReadOnlyCollection<IGrouping<string, BusinessCandidate>> repGroups,
+        Geometry? clipGeometry,
+        GeometryFactory geometryFactory)
+    {
+        Geometry? consumed = null;
+
+        foreach (var group in repGroups.OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            var groupPoints = group.Select(candidate => candidate.Point).ToArray();
+            if (groupPoints.Length == 0)
+            {
+                continue;
+            }
+
+            var territory = geometryFactory.CreateMultiPoint(groupPoints).ConvexHull();
+            if (territory.IsEmpty)
+            {
+                territory = geometryFactory.CreatePoint(groupPoints[0].Coordinate).Buffer(0.01);
+            }
+
+            if (clipGeometry is not null)
+            {
+                territory = territory.Intersection(clipGeometry);
+            }
+
+            if (consumed is not null && !consumed.IsEmpty)
+            {
+                territory = territory.Difference(consumed);
+            }
+
+            territory = ToPolygonalGeometry(territory, geometryFactory);
+            if (territory is null || territory.IsEmpty)
+            {
+                continue;
+            }
+
+            consumed = consumed is null ? territory.Copy() : consumed.Union(territory);
+            featureCollection.Add(new Feature(territory, new AttributesTable { { "rep_id", group.Key } }));
+        }
     }
 }

@@ -225,4 +225,48 @@ public class ExportServiceTests
         }
     }
 
+    [Fact]
+    public async Task ExportTerritoriesGeoJsonAsync_RecoversFromLocateFailureInputs()
+    {
+        var service = new ExportService();
+        var result = new AssignmentResult
+        {
+            AssignedBusinesses =
+            [
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "A1" },
+                    Point = new Point(new Coordinate(-9388643.200050302, 9689152.179670565)),
+                    AssignedRepId = "rep-a"
+                },
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord { Name = "B1" },
+                    Point = new Point(new Coordinate(-4899944.75232389, 899339.3360579684)),
+                    AssignedRepId = "rep-b"
+                }
+            ]
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"territories-{Guid.NewGuid():N}.geojson");
+
+        try
+        {
+            await service.ExportTerritoriesGeoJsonAsync(path, result, CancellationToken.None);
+
+            var json = await File.ReadAllTextAsync(path);
+            var payload = JObject.Parse(json);
+            var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+
+            Assert.Equal(2, features.Count);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
 }
