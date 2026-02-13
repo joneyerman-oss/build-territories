@@ -37,7 +37,25 @@ public sealed class ExportService
 
     public async Task ExportRunLogJsonAsync(string path, AssignmentResult result, CancellationToken cancellationToken)
     {
-        var payload = JsonConvert.SerializeObject(result, Formatting.Indented);
+        var payload = JsonConvert.SerializeObject(new
+        {
+            result.RunId,
+            AssignedBusinesses = result.AssignedBusinesses.Select(b => new
+            {
+                b.Source,
+                Point = new
+                {
+                    Latitude = b.Point.Y,
+                    Longitude = b.Point.X
+                },
+                b.ZoneName,
+                b.Score,
+                b.AssignedRepId,
+                b.DistanceProxyMiles
+            }),
+            result.RepMetrics,
+            result.Overall
+        }, Formatting.Indented);
         await File.WriteAllTextAsync(path, payload, cancellationToken);
     }
 
