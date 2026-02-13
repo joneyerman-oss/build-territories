@@ -2,6 +2,7 @@ namespace TerritoryBuilder.Core.Models;
 
 public sealed class LightBoxRecord
 {
+    public string EntityCategory { get; init; } = string.Empty;
     public string EntityCategoryId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public double Latitude { get; init; }

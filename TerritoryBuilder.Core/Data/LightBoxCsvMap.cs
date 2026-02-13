@@ -7,6 +7,7 @@ public sealed class LightBoxCsvMap : ClassMap<LightBoxRecord>
 {
     public LightBoxCsvMap()
     {
+        Map(m => m.EntityCategory).Name("entity_category").Optional();
         Map(m => m.EntityCategoryId).Name("entity_category_id");
         Map(m => m.Name).Name("name");
         Map(m => m.Latitude).Name("latitude");
