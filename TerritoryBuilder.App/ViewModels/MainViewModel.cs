@@ -48,6 +48,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private int repRosterCount;
     [ObservableProperty] private int repCountInput;
     [ObservableProperty] private bool isAdvancedMode;
+    [ObservableProperty] private bool isBusy;
 
     public ObservableCollection<RepMetrics> RepMetrics { get; } = [];
 
@@ -159,10 +160,16 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RunFullWorkflowAsync()
     {
+        IsBusy = true;
         try
         {
+            StatusMessage = "Full run in progress (step 1/3): loading data...";
             await EnsureDataLoadedAsync();
+
+            StatusMessage = "Full run in progress (step 2/3): assigning territories...";
             await RunAssignmentCoreAsync();
+
+            StatusMessage = "Full run in progress (step 3/3): exporting outputs...";
             await ExportLatestResultAsync();
             StatusMessage = "Full run complete. Assignment finished and outputs were written to output/.";
         }
@@ -170,6 +177,10 @@ public partial class MainViewModel : ObservableObject
         {
             StatusMessage = $"Full run failed: {ex.Message}";
             DiagnosticsMessage = $"Full-run diagnostics unavailable due to error: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
