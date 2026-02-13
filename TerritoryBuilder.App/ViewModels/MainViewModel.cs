@@ -200,7 +200,13 @@ public partial class MainViewModel : ObservableObject
     {
         var candidateBuild = await BuildCandidatesAsync();
         DiagnosticsMessage = FormatDiagnostics(candidateBuild.Diagnostics);
-        var result = await _assignment.AssignAsync(candidateBuild.Candidates, _reps, new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance }, CancellationToken.None);
+        var result = await Task.Run(() =>
+            _assignment.AssignAsync(
+                candidateBuild.Candidates,
+                _reps,
+                new AssignmentOptions { FairnessTolerancePercent = FairnessTolerance },
+                CancellationToken.None).GetAwaiter().GetResult());
+
         _latestResult = result;
         RepMetrics.Clear();
         foreach (var row in result.RepMetrics) RepMetrics.Add(row);
@@ -230,10 +236,14 @@ public partial class MainViewModel : ObservableObject
         }
 
         Directory.CreateDirectory("output");
-        await _export.ExportAssignmentsCsvAsync(Path.Combine("output", "assignments.csv"), _latestResult, CancellationToken.None);
-        await _export.ExportSummaryCsvAsync(Path.Combine("output", "summary.csv"), _latestResult, CancellationToken.None);
-        await _export.ExportRunLogJsonAsync(Path.Combine("output", "run-log.json"), _latestResult, CancellationToken.None);
-        await _export.ExportTerritoriesGeoJsonAsync(Path.Combine("output", "territories.geojson"), _latestResult, CancellationToken.None);
+        await Task.Run(async () =>
+        {
+            await _export.ExportAssignmentsCsvAsync(Path.Combine("output", "assignments.csv"), _latestResult, CancellationToken.None);
+            await _export.ExportSummaryCsvAsync(Path.Combine("output", "summary.csv"), _latestResult, CancellationToken.None);
+            await _export.ExportRunLogJsonAsync(Path.Combine("output", "run-log.json"), _latestResult, CancellationToken.None);
+            await _export.ExportTerritoriesGeoJsonAsync(Path.Combine("output", "territories.geojson"), _latestResult, CancellationToken.None);
+        });
+
         StatusMessage = "Exports written to output/.";
     }
 
