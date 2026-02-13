@@ -165,6 +165,37 @@ public class ScoringEngineTests
     }
 
     [Fact]
+    public async Task BuildCandidates_IncludesNearBoundaryPointWithinTolerance()
+    {
+        var engine = new ScoringFilterEngine();
+        var zones = new List<ZoneFeature>
+        {
+            new() { ZoneName = "VNN", Geometry = new Polygon(new LinearRing(new[] { new Coordinate(0,0), new Coordinate(10,0), new Coordinate(10,10), new Coordinate(0,10), new Coordinate(0,0) })) }
+        };
+
+        async IAsyncEnumerable<LightBoxRecord> Records()
+        {
+            // Slightly outside the eastern boundary due to precision noise.
+            yield return new LightBoxRecord
+            {
+                Name = "near-boundary",
+                EntityCategory = "Business",
+                Latitude = 5,
+                Longitude = 10.0000005,
+                BuildingType = "Large Business",
+                Address = "1 Main"
+            };
+
+            await Task.CompletedTask;
+        }
+
+        var scored = await engine.BuildCandidatesAsync(Records(), zones, new FilterOptions(), new ScoringOptions(), [], CancellationToken.None);
+
+        Assert.Single(scored);
+        Assert.Equal("VNN", scored[0].ZoneName);
+    }
+
+    [Fact]
     public void ExclusionNormalization_UppercasesAndAbbreviates()
     {
         Assert.Equal("123 MAIN ST", AddressNormalizer.Normalize("123 Main Street"));
