@@ -164,6 +164,21 @@ public sealed class ExportService
                     AppendFallbackTerritories(fc, repGroups, clipGeometry, geometryFactory);
                 }
             }
+
+            foreach (var candidate in assigned)
+            {
+                var attributes = new AttributesTable
+                {
+                    { "feature_type", "assignment" },
+                    { "rep_id", candidate.AssignedRepId },
+                    { "entity_id", candidate.Source.Name },
+                    { "latitude", candidate.Point.Y },
+                    { "longitude", candidate.Point.X },
+                    { "location", BuildLocationLabel(candidate.Source) }
+                };
+
+                fc.Add(new Feature(candidate.Point.Copy(), attributes));
+            }
         }
 
         var serializer = GeoJsonSerializer.Create();
@@ -333,5 +348,21 @@ public sealed class ExportService
         }
 
         return false;
+    }
+
+    private static string BuildLocationLabel(LightBoxRecord source)
+    {
+        var segments = new[]
+        {
+            source.Address,
+            source.City,
+            source.State,
+            source.Zip
+        }
+        .Where(segment => !string.IsNullOrWhiteSpace(segment))
+        .Select(segment => segment.Trim())
+        .ToArray();
+
+        return segments.Length == 0 ? source.Name : string.Join(", ", segments);
     }
 }
