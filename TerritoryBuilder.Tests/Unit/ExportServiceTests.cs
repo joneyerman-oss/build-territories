@@ -49,6 +49,55 @@ public class ExportServiceTests
         }
     }
 
+
+    [Fact]
+    public async Task ExportAssignmentsCsvAsync_IncludesUnitCountColumn()
+    {
+        var service = new ExportService();
+        var result = new AssignmentResult
+        {
+            AssignedBusinesses =
+            [
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord
+                    {
+                        Name = "Acme",
+                        Address = "123 Main St",
+                        City = "Austin",
+                        County = "Travis",
+                        State = "TX",
+                        Zip = "78701",
+                        BuildingType = "Small Business",
+                        NumberOfAddresses = 12
+                    },
+                    Point = new Point(new Coordinate(-97.7431, 30.2672)),
+                    AssignedRepId = "rep-1",
+                    Score = 10,
+                    DistanceProxyMiles = 1.5
+                }
+            ]
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"assignments-{Guid.NewGuid():N}.csv");
+
+        try
+        {
+            await service.ExportAssignmentsCsvAsync(path, result, CancellationToken.None);
+
+            var lines = await File.ReadAllLinesAsync(path);
+            Assert.Contains("unit_count", lines[0]);
+            Assert.Contains(",12,", lines[1]);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     [Fact]
     public async Task ExportTerritoriesGeoJsonAsync_IncludesAssignmentPointsWithLatLonAndLocation()
     {
