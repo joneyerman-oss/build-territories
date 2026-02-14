@@ -23,7 +23,7 @@ public sealed class InitialAssignmentService : IAssignmentService
         if (ShouldUseAngularSlicing(activeReps))
         {
             AssignByAngularSlices(candidates, activeReps, target, repLoad, cancellationToken);
-            return Task.FromResult(BuildResult(candidates, activeReps, target));
+            return Task.FromResult(BuildResult(candidates, activeReps, target, options.FairnessTolerancePercent));
         }
 
         foreach (var c in candidates.OrderByDescending(c => c.Score))
@@ -44,7 +44,7 @@ public sealed class InitialAssignmentService : IAssignmentService
             repLoad[ranked.Rep.RepId] += c.Score;
         }
 
-        return Task.FromResult(BuildResult(candidates, activeReps, target));
+        return Task.FromResult(BuildResult(candidates, activeReps, target, options.FairnessTolerancePercent));
     }
 
     private static bool ShouldUseAngularSlicing(IReadOnlyCollection<RepRecord> activeReps)
@@ -91,13 +91,17 @@ public sealed class InitialAssignmentService : IAssignmentService
     private static AssignmentResult BuildResult(
         IReadOnlyCollection<BusinessCandidate> candidates,
         IReadOnlyCollection<RepRecord> activeReps,
-        decimal target)
+        decimal target,
+        decimal fairnessTolerancePercent)
     {
         var repMetrics = activeReps.Select(r =>
         {
             var mine = candidates.Where(c => c.AssignedRepId == r.RepId).ToList();
             var weighted = mine.Sum(c => c.Score);
             var pct = target == 0 ? 0 : ((weighted - target) / target) * 100;
+            var smallCount = mine.Count(c => string.Equals(c.Source.BuildingTypeBucket, "Small Business", StringComparison.OrdinalIgnoreCase));
+            var mediumCount = mine.Count(c => string.Equals(c.Source.BuildingTypeBucket, "Medium Business", StringComparison.OrdinalIgnoreCase));
+            var largeCount = mine.Count(c => string.Equals(c.Source.BuildingTypeBucket, "Large Business", StringComparison.OrdinalIgnoreCase));
             return new RepMetrics
             {
                 RepId = r.RepId,
@@ -106,8 +110,12 @@ public sealed class InitialAssignmentService : IAssignmentService
                 TargetScore = target,
                 PercentToTarget = pct,
                 BusinessCount = mine.Count,
+                SmallBusinessCount = smallCount,
+                MediumBusinessCount = mediumCount,
+                LargeBusinessCount = largeCount,
                 AverageDistance = mine.Count == 0 ? 0 : mine.Average(c => c.DistanceProxyMiles),
                 MaxDistance = mine.Count == 0 ? 0 : mine.Max(c => c.DistanceProxyMiles),
+                WithinFairnessTolerance = Math.Abs(pct) <= fairnessTolerancePercent,
                 ContiguityPass = true
             };
         }).ToList();
