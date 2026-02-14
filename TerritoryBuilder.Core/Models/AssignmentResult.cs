@@ -16,8 +16,12 @@ public sealed class RepMetrics
     public decimal TargetScore { get; init; }
     public decimal PercentToTarget { get; init; }
     public int BusinessCount { get; init; }
+    public int SmallBusinessCount { get; init; }
+    public int MediumBusinessCount { get; init; }
+    public int LargeBusinessCount { get; init; }
     public double AverageDistance { get; init; }
     public double MaxDistance { get; init; }
+    public bool WithinFairnessTolerance { get; init; }
     public bool ContiguityPass { get; init; }
 }
 
