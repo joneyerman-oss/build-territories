@@ -27,6 +27,7 @@ public sealed class ExportService
             b.Source.County,
             b.Source.State,
             b.Source.Zip,
+            unit_count = b.Source.NumberOfAddresses,
             building_type = b.Source.BuildingTypeBucket,
             score = b.Score,
             distance_proxy = b.DistanceProxyMiles
