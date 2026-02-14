@@ -48,6 +48,59 @@ public class ExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task ExportTerritoriesGeoJsonAsync_IncludesAssignmentPointsWithLatLonAndLocation()
+    {
+        var service = new ExportService();
+        var result = new AssignmentResult
+        {
+            AssignedBusinesses =
+            [
+                new BusinessCandidate
+                {
+                    Source = new LightBoxRecord
+                    {
+                        Name = "Acme",
+                        Address = "123 Main St",
+                        City = "Austin",
+                        State = "TX",
+                        Zip = "78701"
+                    },
+                    Point = new Point(new Coordinate(-97.7431, 30.2672)),
+                    AssignedRepId = "rep-1"
+                }
+            ]
+        };
+
+        var path = Path.Combine(Path.GetTempPath(), $"territories-{Guid.NewGuid():N}.geojson");
+
+        try
+        {
+            await service.ExportTerritoriesGeoJsonAsync(path, result, CancellationToken.None);
+
+            var json = await File.ReadAllTextAsync(path);
+            var payload = JObject.Parse(json);
+            var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+
+            var assignmentFeature = features.FirstOrDefault(feature =>
+                string.Equals(feature["properties"]?["feature_type"]?.Value<string>(), "assignment", StringComparison.OrdinalIgnoreCase));
+
+            Assert.NotNull(assignmentFeature);
+            Assert.Equal("Point", assignmentFeature!["geometry"]?["type"]?.Value<string>());
+            Assert.Equal(30.2672, assignmentFeature["properties"]?["latitude"]?.Value<double>());
+            Assert.Equal(-97.7431, assignmentFeature["properties"]?["longitude"]?.Value<double>());
+            Assert.Equal("123 Main St, Austin, TX, 78701", assignmentFeature["properties"]?["location"]?.Value<string>());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     [Fact]
     public async Task ExportTerritoriesGeoJsonAsync_CreatesNonOverlappingTerritories()
     {
@@ -92,11 +145,14 @@ public class ExportServiceTests
             var json = await File.ReadAllTextAsync(path);
             var payload = JObject.Parse(json);
             var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+            var territoryFeatures = features
+                .Where(feature => !string.Equals(feature["properties"]?["feature_type"]?.Value<string>(), "assignment", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            Assert.Equal(2, features.Count);
+            Assert.Equal(2, territoryFeatures.Count);
 
             var reader = new NetTopologySuite.IO.GeoJsonReader();
-            var geometries = features
+            var geometries = territoryFeatures
                 .Select(feature => feature["geometry"]?.ToString())
                 .Where(geometryJson => !string.IsNullOrWhiteSpace(geometryJson))
                 .Select(geometryJson => reader.Read<Geometry>(geometryJson!))
@@ -160,11 +216,14 @@ public class ExportServiceTests
             var json = await File.ReadAllTextAsync(path);
             var payload = JObject.Parse(json);
             var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+            var territoryFeatures = features
+                .Where(feature => !string.Equals(feature["properties"]?["feature_type"]?.Value<string>(), "assignment", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            Assert.NotEmpty(features);
+            Assert.NotEmpty(territoryFeatures);
 
             var reader = new NetTopologySuite.IO.GeoJsonReader();
-            var geometries = features
+            var geometries = territoryFeatures
                 .Select(feature => feature["geometry"]?.ToString())
                 .Where(geometryJson => !string.IsNullOrWhiteSpace(geometryJson))
                 .Select(geometryJson => reader.Read<Geometry>(geometryJson!))
@@ -213,8 +272,11 @@ public class ExportServiceTests
             var json = await File.ReadAllTextAsync(path);
             var payload = JObject.Parse(json);
             var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+            var territoryFeatures = features
+                .Where(feature => !string.Equals(feature["properties"]?["feature_type"]?.Value<string>(), "assignment", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            Assert.Equal(2, features.Count);
+            Assert.Equal(2, territoryFeatures.Count);
         }
         finally
         {
@@ -257,8 +319,11 @@ public class ExportServiceTests
             var json = await File.ReadAllTextAsync(path);
             var payload = JObject.Parse(json);
             var features = payload["features"]?.Children<JObject>().ToList() ?? [];
+            var territoryFeatures = features
+                .Where(feature => !string.Equals(feature["properties"]?["feature_type"]?.Value<string>(), "assignment", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            Assert.Equal(2, features.Count);
+            Assert.Equal(2, territoryFeatures.Count);
         }
         finally
         {
