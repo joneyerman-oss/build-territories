@@ -57,9 +57,7 @@
             <TabControl>
                 <TabItem Header="Data"><ContentControl Content="{Binding DataTab}" /></TabItem>
                 <TabItem Header="Filters" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
-                <TabItem Header="Scoring" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
-                <TabItem Header="Assignment" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
-                <TabItem Header="Map" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding MapTab}" /></TabItem>
+                <TabItem Header="Weighted Assignments" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding WeightedAssignmentsTab}" /></TabItem>
                 <TabItem Header="Results"><ContentControl Content="{Binding ResultsTab}" /></TabItem>
                 <TabItem Header="Export" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ExportTab}" /></TabItem>
             </TabControl>
