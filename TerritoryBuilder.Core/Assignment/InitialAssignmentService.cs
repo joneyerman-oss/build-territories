@@ -26,22 +26,36 @@ public sealed class InitialAssignmentService : IAssignmentService
             return Task.FromResult(BuildResult(candidates, activeReps, target, options.FairnessTolerancePercent));
         }
 
-        foreach (var c in candidates.OrderByDescending(c => c.Score))
+        var orderedCandidates = candidates.OrderByDescending(c => c.Score).ToList();
+
+        foreach (var c in orderedCandidates)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var ranked = activeReps
-                .Select(r =>
-                {
-                    var dist = GeoUtils.HaversineMiles(new(r.HomeLon, r.HomeLat), c.Point.Coordinate);
-                    var loadPenalty = (double)Math.Max(0, repLoad[r.RepId] - target);
-                    return new { Rep = r, Dist = dist, Objective = (dist * (double)options.DrivePenaltyWeight) + (loadPenalty * (double)options.OpportunityVarianceWeight) };
-                })
-                .OrderBy(x => x.Objective)
-                .First();
 
-            c.AssignedRepId = ranked.Rep.RepId;
-            c.DistanceProxyMiles = ranked.Dist;
-            repLoad[ranked.Rep.RepId] += c.Score;
+            RepRecord? bestRep = null;
+            double bestDistance = 0;
+            var bestObjective = double.MaxValue;
+            foreach (var rep in activeReps)
+            {
+                var dist = GeoUtils.HaversineMiles(new(rep.HomeLon, rep.HomeLat), c.Point.Coordinate);
+                var loadPenalty = (double)Math.Max(0, repLoad[rep.RepId] - target);
+                var objective = (dist * (double)options.DrivePenaltyWeight) + (loadPenalty * (double)options.OpportunityVarianceWeight);
+
+                if (objective >= bestObjective) continue;
+
+                bestRep = rep;
+                bestDistance = dist;
+                bestObjective = objective;
+            }
+
+            if (bestRep is null)
+            {
+                throw new InvalidOperationException("Failed to rank reps for assignment.");
+            }
+
+            c.AssignedRepId = bestRep.RepId;
+            c.DistanceProxyMiles = bestDistance;
+            repLoad[bestRep.RepId] += c.Score;
         }
 
         return Task.FromResult(BuildResult(candidates, activeReps, target, options.FairnessTolerancePercent));
@@ -94,9 +108,16 @@ public sealed class InitialAssignmentService : IAssignmentService
         decimal target,
         decimal fairnessTolerancePercent)
     {
+        var repCandidateLookup = candidates
+            .Where(c => !string.IsNullOrWhiteSpace(c.AssignedRepId))
+            .GroupBy(c => c.AssignedRepId!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
         var repMetrics = activeReps.Select(r =>
         {
-            var mine = candidates.Where(c => c.AssignedRepId == r.RepId).ToList();
+            var mine = repCandidateLookup.TryGetValue(r.RepId, out var repCandidates)
+                ? repCandidates
+                : [];
             var weighted = mine.Sum(c => c.Score);
             var pct = target == 0 ? 0 : ((weighted - target) / target) * 100;
             var smallCount = mine.Count(c => string.Equals(c.Source.BuildingTypeBucket, "Small Business", StringComparison.OrdinalIgnoreCase));
