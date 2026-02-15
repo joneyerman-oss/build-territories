@@ -23,6 +23,9 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
     {
         var zoneIndex = BuildZoneIndex(zones);
         var dedupe = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var exclusions = exclusionSets
+            .SelectMany(set => set)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var result = new List<BusinessCandidate>();
         var diagnostics = new CandidateBuildDiagnostics();
 
@@ -63,7 +66,7 @@ public sealed class ScoringFilterEngine : IScoringFilterEngine
             }
 
             var normalizedAddress = AddressNormalizer.Normalize(record.Address);
-            if (exclusionSets.Any(s => s.Contains(normalizedAddress) || (!string.IsNullOrWhiteSpace(record.Name) && s.Contains(record.Name))))
+            if (exclusions.Contains(normalizedAddress) || (!string.IsNullOrWhiteSpace(record.Name) && exclusions.Contains(record.Name)))
             {
                 diagnostics.ExclusionFiltered++;
                 continue;
