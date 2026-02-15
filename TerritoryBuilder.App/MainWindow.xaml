@@ -11,15 +11,57 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </Window.Resources>
-    <Grid Margin="10">
-        <TabControl>
-            <TabItem Header="Data"><ContentControl Content="{Binding DataTab}" /></TabItem>
-            <TabItem Header="Filters" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
-            <TabItem Header="Scoring" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
-            <TabItem Header="Assignment" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
-            <TabItem Header="Map" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding MapTab}" /></TabItem>
-            <TabItem Header="Results"><ContentControl Content="{Binding ResultsTab}" /></TabItem>
-            <TabItem Header="Export" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ExportTab}" /></TabItem>
-        </TabControl>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="#172554"
+                CornerRadius="12"
+                Padding="16"
+                BorderBrush="#38BDF8"
+                BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Viewbox Width="42" Height="42" Stretch="Uniform">
+                    <Grid>
+                        <Ellipse Fill="#0EA5E9" Width="40" Height="40" />
+                        <Path Fill="#E0F2FE"
+                              Data="M8,13 L20,8 L32,13 L20,18 Z M11,21 L20,17 L29,21 L20,25 Z M14,28 L20,25 L26,28 L20,32 Z" />
+                    </Grid>
+                </Viewbox>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock Text="TerritoryBuilder" FontSize="24" FontWeight="Bold" Foreground="#E0F2FE" />
+                    <TextBlock Text="Design smarter territory plans with confidence" FontSize="13" Foreground="#BAE6FD" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="12"
+                Padding="10"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1">
+            <TabControl>
+                <TabItem Header="Data"><ContentControl Content="{Binding DataTab}" /></TabItem>
+                <TabItem Header="Filters" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding FiltersTab}" /></TabItem>
+                <TabItem Header="Scoring" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ScoringTab}" /></TabItem>
+                <TabItem Header="Assignment" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding AssignmentTab}" /></TabItem>
+                <TabItem Header="Map" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding MapTab}" /></TabItem>
+                <TabItem Header="Results"><ContentControl Content="{Binding ResultsTab}" /></TabItem>
+                <TabItem Header="Export" Visibility="{Binding IsAdvancedMode, Converter={StaticResource BoolToVisibilityConverter}}"><ContentControl Content="{Binding ExportTab}" /></TabItem>
+            </TabControl>
+        </Border>
     </Grid>
 </Window>
