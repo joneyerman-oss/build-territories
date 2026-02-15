@@ -26,9 +26,7 @@ public partial class MainViewModel : ObservableObject
 
     public UserControl DataTab { get; } = new DataTabView();
     public UserControl FiltersTab { get; } = new FiltersTabView();
-    public UserControl ScoringTab { get; } = new ScoringTabView();
-    public UserControl AssignmentTab { get; } = new AssignmentTabView();
-    public UserControl MapTab { get; } = new MapTabView();
+    public UserControl WeightedAssignmentsTab { get; } = new WeightedAssignmentsTabView();
     public UserControl ResultsTab { get; } = new ResultsTabView();
     public UserControl ExportTab { get; } = new ExportTabView();
 
@@ -42,6 +40,13 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool includeUnknown = true;
     [ObservableProperty] private bool includeBlanks = true;
     [ObservableProperty] private decimal fairnessTolerance = 5;
+    [ObservableProperty] private decimal largeBusinessWeight = 10;
+    [ObservableProperty] private decimal mediumBusinessWeight = 6;
+    [ObservableProperty] private decimal smallBusinessWeight = 3;
+    [ObservableProperty] private decimal unknownBusinessWeight = 1;
+    [ObservableProperty] private decimal blanksBusinessWeight = 1;
+    [ObservableProperty] private bool useAddressMultiplier = true;
+    [ObservableProperty] private decimal addressMultiplierFactor = 0.1m;
     [ObservableProperty] private string statusMessage = "Ready.";
     [ObservableProperty] private string diagnosticsMessage = string.Empty;
     [ObservableProperty] private decimal totalWeightedOpportunity;
@@ -54,7 +59,7 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        foreach (var tab in new[] { DataTab, FiltersTab, ScoringTab, AssignmentTab, MapTab, ResultsTab, ExportTab })
+        foreach (var tab in new[] { DataTab, FiltersTab, WeightedAssignmentsTab, ResultsTab, ExportTab })
         {
             tab.DataContext = this;
         }
@@ -266,7 +271,19 @@ public partial class MainViewModel : ObservableObject
             IncludedBuildingTypes = buildingTypes
         };
 
-        var scoring = new ScoringOptions { UseAddressMultiplier = true };
+        var scoring = new ScoringOptions
+        {
+            BuildingTypePoints = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Large Business"] = LargeBusinessWeight,
+                ["Medium Business"] = MediumBusinessWeight,
+                ["Small Business"] = SmallBusinessWeight,
+                ["Unknown"] = UnknownBusinessWeight,
+                ["(Blanks)"] = BlanksBusinessWeight
+            },
+            UseAddressMultiplier = UseAddressMultiplier,
+            AddressMultiplierFactor = AddressMultiplierFactor
+        };
         return await _engine.BuildCandidatesAsync(_ingestion.ReadLightBoxAsync(LightBoxPath, CancellationToken.None), _zones, filters, scoring, _exclusionSets, CancellationToken.None);
     }
 
