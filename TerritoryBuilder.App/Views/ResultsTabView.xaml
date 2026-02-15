@@ -2,18 +2,30 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Margin="12">
-        <DataGrid ItemsSource="{Binding RepMetrics}" AutoGenerateColumns="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Rep ID" Binding="{Binding RepId}"/>
-                <DataGridTextColumn Header="Rep Name" Binding="{Binding RepName}"/>
-                <DataGridTextColumn Header="Weighted Score" Binding="{Binding WeightedScore}"/>
-                <DataGridTextColumn Header="Target" Binding="{Binding TargetScore}"/>
-                <DataGridTextColumn Header="% to Target" Binding="{Binding PercentToTarget}"/>
-                <DataGridTextColumn Header="Business Count" Binding="{Binding BusinessCount}"/>
-                <DataGridTextColumn Header="Avg Distance" Binding="{Binding AverageDistance}"/>
-                <DataGridTextColumn Header="Max Distance" Binding="{Binding MaxDistance}"/>
-                <DataGridCheckBoxColumn Header="Contiguous" Binding="{Binding ContiguityPass}"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,10">
+            <TextBlock Text="Assignment Results" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="Review rep-level metrics and territory balance outcomes." Margin="0,4,0,0" />
+        </StackPanel>
+
+        <Border Grid.Row="1" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Background="White" Padding="0">
+            <DataGrid ItemsSource="{Binding RepMetrics}" AutoGenerateColumns="False" AlternationCount="2">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Rep ID" Binding="{Binding RepId}"/>
+                    <DataGridTextColumn Header="Rep Name" Binding="{Binding RepName}"/>
+                    <DataGridTextColumn Header="Weighted Score" Binding="{Binding WeightedScore}"/>
+                    <DataGridTextColumn Header="Target" Binding="{Binding TargetScore}"/>
+                    <DataGridTextColumn Header="% to Target" Binding="{Binding PercentToTarget}"/>
+                    <DataGridTextColumn Header="Business Count" Binding="{Binding BusinessCount}"/>
+                    <DataGridTextColumn Header="Avg Distance" Binding="{Binding AverageDistance}"/>
+                    <DataGridTextColumn Header="Max Distance" Binding="{Binding MaxDistance}"/>
+                    <DataGridCheckBoxColumn Header="Contiguous" Binding="{Binding ContiguityPass}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
     </Grid>
 </UserControl>
