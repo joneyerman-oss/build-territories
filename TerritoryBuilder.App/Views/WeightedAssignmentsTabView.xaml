@@ -3,55 +3,59 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="12">
-            <TextBlock Text="Weighted assignments" FontSize="18" FontWeight="SemiBold" />
-            <TextBlock Text="Adjust how each business type contributes to the weighted opportunity score." Margin="0,4,0,0" TextWrapping="Wrap"/>
+            <TextBlock Text="Weighted Assignments" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+            <TextBlock Text="Tune weighting and fairness settings before assigning territory ownership." Margin="0,4,0,12" TextWrapping="Wrap"/>
 
-            <TextBlock Text="Building type weights" FontWeight="Bold" Margin="0,12,0,0"/>
-            <Grid Margin="0,6,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="220"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <GroupBox Header="Building type weights">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="140"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Large Business" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LargeBusinessWeight}" Margin="8,2,0,2"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Large Business" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding LargeBusinessWeight}" Margin="8,2,0,2"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Medium Business" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MediumBusinessWeight}" Margin="8,2,0,2"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Medium Business" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MediumBusinessWeight}" Margin="8,2,0,2"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Small Business" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SmallBusinessWeight}" Margin="8,2,0,2"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Small Business" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SmallBusinessWeight}" Margin="8,2,0,2"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Unknown" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding UnknownBusinessWeight}" Margin="8,2,0,2"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Unknown" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding UnknownBusinessWeight}" Margin="8,2,0,2"/>
 
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="(Blanks)" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BlanksBusinessWeight}" Margin="8,2,0,2"/>
-            </Grid>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="(Blanks)" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BlanksBusinessWeight}" Margin="8,2,0,2"/>
+                </Grid>
+            </GroupBox>
 
-            <TextBlock Text="Address multiplier" FontWeight="Bold" Margin="0,12,0,0"/>
-            <CheckBox Content="Use number_of_addresses multiplier" IsChecked="{Binding UseAddressMultiplier}" Margin="0,6,0,0"/>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Text="Multiplier factor" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding AddressMultiplierFactor}" Width="120" Margin="8,0,0,0"/>
+            <GroupBox Header="Scoring modifiers">
+                <StackPanel>
+                    <CheckBox Content="Use number_of_addresses multiplier" IsChecked="{Binding UseAddressMultiplier}" Margin="0,0,0,2"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Multiplier factor" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBox Text="{Binding AddressMultiplierFactor}" Width="120" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Fairness tolerance (%)" VerticalAlignment="Center" Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBox Text="{Binding FairnessTolerance}" Width="120" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Preview Weighted Opportunity" Command="{Binding PreviewScoringCommand}" Width="230" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="Run Assignment" Command="{Binding RunAssignmentCommand}" Width="170" Style="{StaticResource SuccessButtonStyle}"/>
             </StackPanel>
-
-            <TextBlock Text="Assignment settings" FontWeight="Bold" Margin="0,12,0,0"/>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Text="Fairness tolerance (%)" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding FairnessTolerance}" Width="120" Margin="8,0,0,0"/>
-            </StackPanel>
-
-            <Button Content="Preview Weighted Opportunity" Command="{Binding PreviewScoringCommand}" Width="220" Margin="0,12,0,0"/>
-            <Button Content="Run Assignment" Command="{Binding RunAssignmentCommand}" Width="220" Margin="0,8,0,0"/>
-            <TextBlock Text="{Binding TotalWeightedOpportunity, StringFormat=Total Score: {0:N2}}" Margin="0,8,0,0" />
+            <TextBlock Text="{Binding TotalWeightedOpportunity, StringFormat=Total Score: {0:N2}}" Margin="0,8,0,0" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>
