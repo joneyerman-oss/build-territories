@@ -3,6 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <DrawingImage x:Key="AppIconImage">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#0EA5E9" Geometry="F1 M 12,0 C 5.372583,0 0,5.372583 0,12 0,18.627417 5.372583,24 12,24 18.627417,24 24,18.627417 24,12 24,5.372583 18.627417,0 12,0 Z"/>
+                    <GeometryDrawing Brush="#E0F2FE" Geometry="M4.8,10.2 L12,7.2 L19.2,10.2 L12,13.2 Z M6.6,14.4 L12,12 L17.4,14.4 L12,16.8 Z M8.4,18 L12,16.2 L15.6,18 L12,19.8 Z"/>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
         <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F172A" />
         <SolidColorBrush x:Key="SurfaceBrush" Color="#111827" />
         <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="#1F2937" />
@@ -29,12 +38,30 @@
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
             <Setter Property="Margin" Value="0,0,6,0" />
             <Setter Property="Padding" Value="12,8" />
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                    <Setter Property="Background" Value="{StaticResource SurfaceElevatedBrush}" />
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                CornerRadius="8,8,0,0"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Foreground" Value="#082F49" />
+                                <Setter TargetName="TabBorder" Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="Button">
